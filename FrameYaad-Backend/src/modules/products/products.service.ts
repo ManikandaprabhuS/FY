@@ -1,15 +1,21 @@
 import { Prisma, UserRole } from "@prisma/client";
+import { randomUUID } from "node:crypto";
+import path from "node:path";
 import type { z } from "zod";
 
+import { supabaseAdmin } from "../../config/supabase";
 import { prisma } from "../../prisma/client";
 import { ApiError } from "../../utils/api-error";
 import { paginationMeta } from "../../utils/pagination";
 import { productViewSelect } from "./products.select";
 import { productListQuerySchema } from "./products.schemas";
-import type { createProductSchema, updateProductSchema } from "./products.schemas";
+import type { createAdminProductPreviewSchema, createProductSchema, updateProductSchema } from "./products.schemas";
 
 type CreateProductInput = z.infer<typeof createProductSchema>;
+type CreateAdminProductPreviewInput = z.infer<typeof createAdminProductPreviewSchema>;
 type UpdateProductInput = z.infer<typeof updateProductSchema>;
+
+const productImagesBucket = "product-images";
 
 const assertActiveReferences = async (materialId: string, variantId: string): Promise<void> => {
   const [material, variant] = await Promise.all([
@@ -71,4 +77,95 @@ export const updateProduct = async (id: string, input: UpdateProductInput, role:
 export const deleteProduct = async (id: string, role: UserRole): Promise<void> => {
   await getProduct(id, role);
   await prisma.product.delete({ where: { id } });
+};
+
+export const createAdminProductPreview = async (
+  input: CreateAdminProductPreviewInput,
+  actorId: string,
+) => {
+  const productIdentifier = `FY-${randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`;
+  // Validation requires at least one item before this service is called.
+  const primaryVariant = input.variants[0]!;
+
+  return prisma.$transaction(async (transaction) => {
+    const material = await transaction.material.create({
+      data: {
+        // Material.name is not used by the admin list preview. The identifier
+        // keeps its existing unique constraint satisfied for duplicate product names.
+        name: `${input.name} ${productIdentifier}`,
+        description: input.description,
+        brandName: input.brandName,
+        material: input.material,
+        availableColors: input.availableColors,
+        isActive: input.isActive,
+        createdById: actorId,
+      },
+    });
+    const variant = await transaction.variant.create({
+      data: {
+        color: primaryVariant.color ?? input.availableColors[0] ?? "Standard",
+        frameSize: primaryVariant.frameSize,
+        mountType: primaryVariant.mountType,
+        glassType: primaryVariant.glassType,
+        stockQuantity: primaryVariant.stockQuantity,
+        mrp: primaryVariant.price,
+        price: primaryVariant.price,
+        isActive: input.isActive,
+        createdById: actorId,
+      },
+    });
+
+    return transaction.product.create({
+      data: {
+        productIdentifier,
+        productName: input.name,
+        materialId: material.id,
+        variantId: variant.id,
+        createdById: actorId,
+        images: input.images.length > 0
+          ? {
+              create: input.images.map((image, index) => ({
+                imageUrl: image.imageUrl,
+                isPrimary: index === 0,
+              })),
+            }
+          : undefined,
+      },
+      select: productViewSelect,
+    });
+  });
+};
+
+export const uploadProductImages = async (files: Express.Multer.File[]): Promise<string[]> => {
+  if (files.length === 0) {
+    throw new ApiError(400, "At least one image file is required", "PRODUCT_IMAGES_REQUIRED");
+  }
+
+  const uploadedPaths: string[] = [];
+
+  try {
+    for (const file of files) {
+      const extension = path.extname(file.originalname).toLowerCase() ||
+        (file.mimetype === "video/mp4" ? ".mp4" : ".jpg");
+      const objectPath = `products/${randomUUID()}${extension}`;
+      const { error } = await supabaseAdmin.storage
+        .from(productImagesBucket)
+        .upload(objectPath, file.buffer, { contentType: file.mimetype, upsert: false });
+
+      if (error) {
+        throw new ApiError(502, "Unable to store product image", "PRODUCT_IMAGE_UPLOAD_FAILED");
+      }
+
+      uploadedPaths.push(objectPath);
+    }
+  } catch (error) {
+    if (uploadedPaths.length > 0) {
+      await supabaseAdmin.storage.from(productImagesBucket).remove(uploadedPaths);
+    }
+    throw error;
+  }
+
+  return uploadedPaths.map((objectPath) =>
+    supabaseAdmin.storage.from(productImagesBucket).getPublicUrl(objectPath).data.publicUrl,
+  );
 };

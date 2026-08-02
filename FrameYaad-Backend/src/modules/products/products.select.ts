@@ -26,6 +26,8 @@ export const productViewSelect = {
       color: true,
       frameSize: true,
       mountType: true,
+      glassType: true,
+      stockQuantity: true,
       mrp: true,
       price: true,
       isActive: true,

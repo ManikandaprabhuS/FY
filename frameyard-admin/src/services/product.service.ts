@@ -13,11 +13,13 @@ export type ProductPayload = {
   variantId?: string | null;
   name: string;
   description?: string;
+  brandName?: string;
   material: string;
   availableColors: string[];
   createdBy?: string | null;
   isActive?: boolean;
   images?: ProductImagePayload[];
+  variants?: VariantPayload[];
 };
 
 export type VariantPayload = {
@@ -36,10 +38,12 @@ export type VariantPayload = {
 };
 
 type ProductVariantApi = {
+  id?: string;
+  productId?: string;
   price: number | string;
   mrp?: number | string | null;
   offerPrice?: number | string | null;
-  stockQuantity: number | string;
+  stockQuantity?: number | string;
   createdAt?: string;
   updatedAt?: string;
   priceValidUntil?: string | null;
@@ -47,14 +51,32 @@ type ProductVariantApi = {
 };
 
 type ProductApi = {
+  id?: string;
+  productIdentifier?: string;
+  productName?: string;
+  name?: string;
+  description?: string;
+  brandName?: string;
+  material?: string | {
+    brandName: string;
+    description?: string | null;
+    material: string;
+    availableColors: string[];
+    isActive: boolean;
+  };
+  availableColors?: string[];
+  isActive?: boolean;
+  variant?: ProductVariantApi;
+  createdAt?: string;
+  updatedAt?: string;
   variants?: ProductVariantApi[];
   images?: Array<{
     id: string;
-    productId: string;
+    productId?: string;
     productIdentifier?: string | null;
     imageUrl: string;
     isPrimary?: boolean;
-    displayOrder: number | string;
+    displayOrder?: number | string;
   }>;
   [key: string]: unknown;
 };
@@ -70,7 +92,7 @@ const normalizeVariant = (variant: ProductVariantApi): ProductVariant => ({
     variant.mrp === null || variant.mrp === undefined
       ? null
       : Number(variant.mrp),
-  stockQuantity: Number(variant.stockQuantity),
+  stockQuantity: Number(variant.stockQuantity ?? 0),
   createdAt: variant.createdAt
     ? new Date(variant.createdAt).toISOString()
     : new Date().toISOString(),
@@ -82,22 +104,37 @@ const normalizeVariant = (variant: ProductVariantApi): ProductVariant => ({
     : null,
 });
 
-const normalizeProduct = (product: ProductApi): Product => ({
-  ...(product as unknown as Product),
-  variants: Array.isArray(product.variants)
+const normalizeProduct = (product: ProductApi): Product => {
+  const materialDetails = typeof product.material === 'object' ? product.material : undefined;
+  const variants = Array.isArray(product.variants)
     ? product.variants.map(normalizeVariant)
-    : [],
+    : product.variant
+      ? [normalizeVariant(product.variant)]
+      : [];
+
+  return {
+  ...(product as unknown as Product),
+  name: product.name ?? product.productName ?? '',
+  description: product.description ?? materialDetails?.description ?? undefined,
+  brandName: product.brandName ?? materialDetails?.brandName ?? '',
+  material: typeof product.material === 'string' ? product.material : materialDetails?.material ?? '',
+  availableColors: product.availableColors ?? materialDetails?.availableColors ?? [],
+  isActive: product.isActive ?? materialDetails?.isActive ?? false,
+  createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : new Date().toISOString(),
+  updatedAt: product.updatedAt ? new Date(product.updatedAt).toISOString() : new Date().toISOString(),
+  variants,
   images: Array.isArray(product.images)
     ? product.images.map((image): ProductImage => ({
       id: image.id,
-      productId: image.productId,
+      productId: image.productId ?? product.id ?? '',
       productIdentifier: image.productIdentifier ?? null,
       imageUrl: image.imageUrl,
       isPrimary: image.isPrimary ?? false,
-      displayOrder: Number(image.displayOrder),
+      displayOrder: Number(image.displayOrder ?? 1),
     }))
     : [],
-});
+  };
+};
 
 export const uploadProductImages = async (
   files: File[]
@@ -116,12 +153,12 @@ export const uploadProductImages = async (
 export const productService = {
   getProducts: async (): Promise<Product[]> => {
     const response = await api.get('/products');
-    return (response.data.products || []).map(normalizeProduct);
+    return (response.data.data?.products || response.data.products || []).map(normalizeProduct);
   },
 
   getProductById: async (id: string): Promise<Product> => {
     const response = await api.get(`/products/${id}`);
-    return normalizeProduct(response.data.product);
+    return normalizeProduct(response.data.data?.product || response.data.product);
   },
 
   createProduct: async (
