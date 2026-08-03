@@ -2,6 +2,27 @@ import { create } from 'zustand';
 import { Product } from '../types';
 import { ProductPayload, productService, VariantPayload } from '../services/product.service';
 
+const PRODUCT_CACHE_KEY = 'fy_admin_product_cache';
+
+const readProductCache = () => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = sessionStorage.getItem(PRODUCT_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeProductCache = (products: Product[]) => {
+  try {
+    if (typeof window === 'undefined') return;
+    sessionStorage.setItem(PRODUCT_CACHE_KEY, JSON.stringify(products));
+  } catch {
+    // Ignore cache write failures.
+  }
+};
+
 interface ProductState {
   products: Product[];
   currentProduct: Product | null;
@@ -17,8 +38,10 @@ interface ProductState {
   clearCurrentProduct: () => void;
 }
 
-export const useProductStore = create<ProductState>((set) => ({
-  products: [],
+const cachedProducts = readProductCache() as Product[] | null;
+
+export const useProductStore = create<ProductState>((set, get) => ({
+  products: cachedProducts ?? [],
   currentProduct: null,
   loading: false,
   error: null,
@@ -28,6 +51,7 @@ export const useProductStore = create<ProductState>((set) => ({
     try {
       const data = await productService.getProducts();
       set({ products: data, loading: false });
+      writeProductCache(data);
     } catch (err: any) {
       set({ error: err.response?.data?.message || 'Failed to fetch products', loading: false });
     }
@@ -51,6 +75,7 @@ export const useProductStore = create<ProductState>((set) => ({
         products: [...state.products, newProd],
         loading: false,
       }));
+      writeProductCache([...get().products, newProd]);
       return newProd;
     } catch (err: any) {
       set({ error: err.response?.data?.message || 'Failed to add product', loading: false });
@@ -86,6 +111,7 @@ export const useProductStore = create<ProductState>((set) => ({
           loading: false,
         };
       });
+      writeProductCache(get().products.map((p) => (p.id === id ? updatedProd : p)));
       return true;
     } catch (err: any) {
       set({ error: err.response?.data?.message || 'Failed to update product', loading: false });
@@ -103,9 +129,10 @@ export const useProductStore = create<ProductState>((set) => ({
         products: state.products.map((p) => (p.id === productId ? product : p)),
         loading: false,
       }));
+      writeProductCache(get().products.map((p) => (p.id === productId ? product : p)));
       return true;
     } catch (err: any) {
-      set({ error: err.response?.data?.message || 'Failed to add variant', loading: false });
+      set({ error: err.response?.data?.error?.message || err.response?.data?.message || 'Failed to add variant', loading: false });
       return false;
     }
   },
@@ -129,9 +156,10 @@ export const useProductStore = create<ProductState>((set) => ({
           : null,
         loading: false,
       }));
+      writeProductCache(get().products);
       return true;
     } catch (err: any) {
-      set({ error: err.response?.data?.message || 'Failed to update variant', loading: false });
+      set({ error: err.response?.data?.error?.message || err.response?.data?.message || 'Failed to update variant', loading: false });
       return false;
     }
   },
@@ -153,6 +181,7 @@ export const useProductStore = create<ProductState>((set) => ({
           : null,
         loading: false,
       }));
+      writeProductCache(get().products);
       return true;
     } catch (err: any) {
       set({ error: err.response?.data?.message || 'Failed to delete variant', loading: false });

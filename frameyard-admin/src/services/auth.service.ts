@@ -10,6 +10,7 @@ type BackendUser = User & {
 
 type AuthData = {
   user: BackendUser;
+  accessToken: string;
   authentication: 'httpOnlyCookie';
   expiresInSeconds: number;
 };
