@@ -9,10 +9,13 @@ import { ApiError } from "../../utils/api-error";
 import { paginationMeta } from "../../utils/pagination";
 import { productViewSelect } from "./products.select";
 import { productListQuerySchema } from "./products.schemas";
-import type { createAdminProductPreviewSchema, createProductSchema, updateProductSchema } from "./products.schemas";
+import type { createAdminProductPreviewSchema, createAdminVariantSchema, createProductSchema, updateAdminProductPreviewSchema, updateAdminVariantSchema, updateProductSchema } from "./products.schemas";
 
 type CreateProductInput = z.infer<typeof createProductSchema>;
 type CreateAdminProductPreviewInput = z.infer<typeof createAdminProductPreviewSchema>;
+type UpdateAdminProductPreviewInput = z.infer<typeof updateAdminProductPreviewSchema>;
+type UpdateAdminVariantInput = z.infer<typeof updateAdminVariantSchema>;
+type CreateAdminVariantInput = z.infer<typeof createAdminVariantSchema>;
 type UpdateProductInput = z.infer<typeof updateProductSchema>;
 
 const productImagesBucket = "product-images";
@@ -55,7 +58,7 @@ export const listProducts = async (rawQuery: unknown, role: UserRole) => {
 export const getProduct = async (id: string, role: UserRole) => {
   const product = await prisma.product.findUnique({ where: { id }, select: productViewSelect });
   if (!product) throw new ApiError(404, "Product was not found", "PRODUCT_NOT_FOUND");
-  if (role === UserRole.CUSTOMER && (!product.material.isActive || !product.variant.isActive)) {
+  if (role === UserRole.CUSTOMER && (!product.material.isActive || !product.variant?.isActive)) {
     throw new ApiError(404, "Product was not found", "PRODUCT_NOT_FOUND");
   }
   return product;
@@ -70,7 +73,7 @@ export const updateProduct = async (id: string, input: UpdateProductInput, role:
   const existing = await getProduct(id, role);
   const materialId = input.materialId ?? existing.materialId;
   const variantId = input.variantId ?? existing.variantId;
-  if (input.materialId || input.variantId) await assertActiveReferences(materialId, variantId);
+  if ((input.materialId || input.variantId) && variantId) await assertActiveReferences(materialId, variantId);
   return prisma.product.update({ where: { id }, data: input, select: productViewSelect });
 };
 
@@ -84,9 +87,6 @@ export const createAdminProductPreview = async (
   actorId: string,
 ) => {
   const productIdentifier = `FY-${randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`;
-  // Validation requires at least one item before this service is called.
-  const primaryVariant = input.variants[0]!;
-
   return prisma.$transaction(async (transaction) => {
     const material = await transaction.material.create({
       data: {
@@ -101,38 +101,110 @@ export const createAdminProductPreview = async (
         createdById: actorId,
       },
     });
-    const variant = await transaction.variant.create({
-      data: {
-        color: primaryVariant.color ?? input.availableColors[0] ?? "Standard",
-        frameSize: primaryVariant.frameSize,
-        mountType: primaryVariant.mountType,
-        glassType: primaryVariant.glassType,
-        stockQuantity: primaryVariant.stockQuantity,
-        mrp: primaryVariant.price,
-        price: primaryVariant.price,
-        isActive: input.isActive,
-        createdById: actorId,
-      },
-    });
-
-    return transaction.product.create({
+    const product = await transaction.product.create({
       data: {
         productIdentifier,
         productName: input.name,
         materialId: material.id,
-        variantId: variant.id,
         createdById: actorId,
-        images: input.images.length > 0
-          ? {
-              create: input.images.map((image, index) => ({
-                imageUrl: image.imageUrl,
-                isPrimary: index === 0,
-              })),
-            }
-          : undefined,
+        images: input.images.length > 0 ? { create: input.images.map((image, index) => ({ imageUrl: image.imageUrl, isPrimary: index === 0 })) } : undefined,
+      },
+    });
+    const variants = await Promise.all(input.variants.map((item) => transaction.variant.create({ data: {
+      productId: product.id, color: item.color ?? input.availableColors[0] ?? "Standard", frameSize: item.frameSize,
+      mountType: item.mountType, glassType: item.glassType, stockQuantity: item.stockQuantity,
+      mrp: item.price, price: item.offerPrice ?? item.price, isActive: input.isActive, createdById: actorId,
+    }})));
+    return transaction.product.update({ where: { id: product.id }, data: { variantId: variants[0]!.id }, select: productViewSelect });
+  });
+};
+
+export const updateAdminProductPreview = async (
+  id: string,
+  input: UpdateAdminProductPreviewInput,
+  role: UserRole,
+) => {
+  const existing = await getProduct(id, role);
+  const primaryVariant = input.variants?.[0];
+
+  return prisma.$transaction(async (transaction) => {
+    await transaction.material.update({
+      where: { id: existing.materialId },
+      data: {
+        description: input.description,
+        brandName: input.brandName,
+        material: input.material,
+        availableColors: input.availableColors,
+        isActive: input.isActive,
+      },
+    });
+
+    if (primaryVariant && existing.variantId) {
+      await transaction.variant.update({
+        where: { id: existing.variantId },
+        data: {
+          color: primaryVariant.color ?? undefined,
+          frameSize: primaryVariant.frameSize,
+          mountType: primaryVariant.mountType,
+          glassType: primaryVariant.glassType,
+          stockQuantity: primaryVariant.stockQuantity,
+          mrp: primaryVariant.price,
+          price: primaryVariant.price,
+          isActive: input.isActive,
+        },
+      });
+    } else if (input.isActive !== undefined && existing.variantId) {
+      await transaction.variant.update({ where: { id: existing.variantId }, data: { isActive: input.isActive } });
+    }
+
+    return transaction.product.update({
+      where: { id },
+      data: {
+        productName: input.name,
+        images: input.images === undefined
+          ? undefined
+          : {
+              deleteMany: {},
+              create: input.images.map((image, index) => ({ imageUrl: image.imageUrl, isPrimary: index === 0 })),
+            },
       },
       select: productViewSelect,
     });
+  });
+};
+
+export const updateAdminVariant = async (id: string, input: UpdateAdminVariantInput) =>
+  prisma.variant.update({
+    where: { id },
+    data: {
+      color: input.color ?? undefined,
+      frameSize: input.frameSize,
+      mountType: input.mountType,
+      glassType: input.glassType,
+      stockQuantity: input.stockQuantity,
+      mrp: input.price,
+      price: input.offerPrice ?? input.price,
+    },
+  });
+
+export const createAdminVariant = async (productId: string, input: CreateAdminVariantInput, actorId: string, role: UserRole) => {
+  const product = await getProduct(productId, role);
+  const variant = await prisma.variant.create({ data: {
+    productId, color: input.color ?? product.material.availableColors[0] ?? "Standard", frameSize: input.frameSize,
+    mountType: input.mountType, glassType: input.glassType, stockQuantity: input.stockQuantity,
+    mrp: input.price, price: input.offerPrice ?? input.price, createdById: actorId, isActive: product.material.isActive,
+  }});
+  if (!product.variantId) await prisma.product.update({ where: { id: productId }, data: { variantId: variant.id } });
+  return variant;
+};
+
+export const deleteAdminVariant = async (id: string): Promise<void> => {
+  const variant = await prisma.variant.findUnique({ where: { id }, select: { productId: true } });
+  if (!variant) throw new ApiError(404, "Variant was not found", "VARIANT_NOT_FOUND");
+  await prisma.$transaction(async (transaction) => {
+    const replacement = await transaction.variant.findFirst({ where: { productId: variant.productId, id: { not: id } }, select: { id: true } });
+    await transaction.product.updateMany({ where: { variantId: id }, data: { variantId: replacement?.id ?? null } });
+    await transaction.variant.delete({ where: { id } });
   });
 };
 

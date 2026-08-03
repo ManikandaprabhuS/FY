@@ -37,7 +37,7 @@ const getAvailableProduct = async (transaction: Prisma.TransactionClient, produc
       variant: { select: { isActive: true, price: true } },
     },
   });
-  if (!product || !product.material.isActive || !product.variant.isActive) {
+  if (!product || !product.material.isActive || !product.variant?.isActive) {
     throw new ApiError(404, "Product is not available", "PRODUCT_NOT_AVAILABLE");
   }
   return product;
@@ -67,7 +67,7 @@ export const addItem = (userId: string, input: AddCartItemInput) =>
     });
     const quantity = (existing?.quantity ?? 0) + input.quantity;
     if (quantity > 99) throw new ApiError(400, "Cart item quantity cannot exceed 99", "QUANTITY_LIMIT_EXCEEDED");
-    const price = product.variant.price;
+    const price = product.variant!.price;
     const subtotal = price.mul(quantity);
 
     if (existing) {
@@ -98,7 +98,7 @@ export const updateItem = (userId: string, itemId: string, input: UpdateCartItem
     });
     if (!item) throw new ApiError(404, "Cart item was not found", "CART_ITEM_NOT_FOUND");
     const product = await getAvailableProduct(transaction, item.productIdentifier);
-    const price = product.variant.price;
+    const price = product.variant!.price;
     await transaction.cartItem.update({
       where: { id: item.id },
       data: { quantity: input.quantity, price, subtotal: price.mul(input.quantity) },
