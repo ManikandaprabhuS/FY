@@ -54,6 +54,7 @@ type OrdersResponse = {
   pagination: Pagination;
   summary: {
     totalCount: number;
+    revenueTotal: number;
     pendingCount: number;
     processingCount: number;
     deliveredCount: number;
@@ -121,6 +122,7 @@ export const normalizeOrder = (order: BackendOrder): Order => ({
 
 const summaryFor = (orders: Order[]): OrdersResponse['summary'] => ({
   totalCount: orders.length,
+  revenueTotal: orders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0),
   pendingCount: orders.filter((order) => order.orderStatus === 'PLACED').length,
   processingCount: orders.filter((order) => ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP'].includes(order.orderStatus)).length,
   deliveredCount: orders.filter((order) => order.orderStatus === 'DELIVERED').length,

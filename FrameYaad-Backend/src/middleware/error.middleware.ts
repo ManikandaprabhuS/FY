@@ -36,6 +36,9 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, request, respo
       code: apiError.code,
       message: apiError.message,
       ...(apiError.details === undefined ? {} : { details: apiError.details }),
+      ...(env.NODE_ENV !== "production" && !(apiError.details) && error instanceof Error
+        ? { details: error.message }
+        : {}),
       ...(env.NODE_ENV === "development" && error instanceof Error ? { stack: error.stack } : {}),
     },
     requestId: request.requestId,

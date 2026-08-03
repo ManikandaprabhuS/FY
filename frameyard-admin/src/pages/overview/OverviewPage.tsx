@@ -27,7 +27,7 @@ import {
 export const OverviewPage: React.FC = () => {
   const navigate = useNavigate();
   const { products, fetchProducts, loading: loadingProducts } = useProducts(false);
-  const { orders, fetchOrders, loading: loadingOrders } = useOrders(false);
+  const { orders, fetchOrders, loading: loadingOrders, summary } = useOrders(false);
   const { customers, fetchCustomers, loading: loadingCustomers } = useCustomers(false);
   const today = new Date();
   type ReportRange = 'today' | 'week' | 'month' | 'year' | 'custom';
@@ -120,7 +120,7 @@ export const OverviewPage: React.FC = () => {
     [orders, reportDateRange]
   );
 
-  const calculatedRevenue = orders.reduce(
+  const calculatedRevenue = summary.revenueTotal || orders.reduce(
     (sum, o) => (o.orderStatus !== 'CANCELLED' ? sum + Number(o.totalAmount || 0) : sum),
     0
   );

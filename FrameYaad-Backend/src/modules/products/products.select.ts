@@ -33,6 +33,20 @@ export const productViewSelect = {
       isActive: true,
     },
   },
+  variants: {
+    select: {
+      id: true,
+      color: true,
+      frameSize: true,
+      mountType: true,
+      glassType: true,
+      stockQuantity: true,
+      mrp: true,
+      price: true,
+      isActive: true,
+    },
+    orderBy: { createdAt: "asc" },
+  },
   images: {
     select: {
       id: true,
@@ -43,5 +57,12 @@ export const productViewSelect = {
     orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
   },
 } satisfies Prisma.ProductSelect;
+
+// Used while an older deployment is being migrated. It preserves the legacy
+// primary variant response when the new product_id column is not present yet.
+export const legacyProductViewSelect = (() => {
+  const { variants: _variants, ...legacy } = productViewSelect;
+  return legacy;
+})();
 
 export type ProductView = Prisma.ProductGetPayload<{ select: typeof productViewSelect }>;

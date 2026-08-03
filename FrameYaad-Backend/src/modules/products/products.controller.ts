@@ -4,6 +4,7 @@ import type { Request } from "express";
 import type { z } from "zod";
 
 import { ApiError } from "../../utils/api-error";
+import { logger } from "../../config/logger";
 import type { createAdminProductPreviewSchema, createProductSchema, updateProductSchema } from "./products.schemas";
 import { productIdSchema } from "./products.schemas";
 import * as productsService from "./products.service";
@@ -63,6 +64,25 @@ export const updateProduct: RequestHandler = async (request, response) => {
     auth.role,
   );
   response.status(200).json({ success: true, data: { product } });
+};
+
+export const createProductVariant: RequestHandler = async (request, response) => {
+  const auth = authFrom(request);
+  logger.info({ productId: request.params.id, body: request.body, actorId: auth.id }, "Product variant add method called");
+  const product = await productsService.createProductVariant(idFrom(request.params.id), request.body, auth.role);
+  response.status(201).json({ success: true, data: { variant: product.variant } });
+};
+
+export const updateProductVariant: RequestHandler = async (request, response) => {
+  const auth = authFrom(request);
+  const variant = await productsService.updateProductVariant(idFrom(request.params.variantId), request.body, auth.role);
+  response.status(200).json({ success: true, data: { variant } });
+};
+
+export const deleteProductVariant: RequestHandler = async (request, response) => {
+  const auth = authFrom(request);
+  await productsService.deleteProductVariant(idFrom(request.params.variantId), auth.role);
+  response.status(204).send();
 };
 
 export const deleteProduct: RequestHandler = async (request, response) => {

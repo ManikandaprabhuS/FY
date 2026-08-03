@@ -11,11 +11,14 @@ import { productService } from '../../services/product.service';
 
 export const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, loading, fetchProducts, editProduct } = useProducts(false);
+  const { products: storeProducts, editProduct } = useProducts(true);
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'draft'>('all');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(storeProducts.length === 0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Delete Dialog State
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -25,9 +28,41 @@ export const ProductsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  const dedupeProducts = (items: Product[]) => {
+    const seen = new Map<string, Product>();
+    items.forEach((item) => {
+      seen.set(item.id, item);
+    });
+    return Array.from(seen.values());
+  };
+
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    let active = true;
+    const loadProducts = async () => {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const data = await productService.getProducts();
+        if (!active) return;
+        setProducts(dedupeProducts(data));
+      } catch (error: any) {
+        if (!active) return;
+        setLoadError(error?.response?.data?.message || 'Failed to fetch products');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void loadProducts();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, products.length]);
 
   // Handle stock computation
   const getStockStatus = (product: Product) => {
@@ -67,10 +102,16 @@ export const ProductsPage: React.FC = () => {
 
   // Pagination Logic
   const totalItems = filteredProducts.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = dedupeProducts(filteredProducts).slice(indexOfFirstItem, indexOfLastItem);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handleStatusToggle = async (product: Product) => {
     const updated = await editProduct(product.id, {
@@ -92,23 +133,23 @@ export const ProductsPage: React.FC = () => {
     setIsDeleteOpen(true);
   };
 
- const handleConfirmDelete = async () => {
-  if (!deleteId) {
-    return;
-  }
-  try {
-    await productService.deleteProduct(deleteId);
-    showSuccess('Product deleted successfully');
-    await fetchProducts();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete product';
-    console.error('Delete failed:', error);
-    showError(message);
-  } finally {
-    setDeleteId(null);
-    setIsDeleteOpen(false);
-  }
-};
+  const handleConfirmDelete = async () => {
+    if (!deleteId) {
+      return;
+    }
+    try {
+      await productService.deleteProduct(deleteId);
+      showSuccess('Product deleted successfully');
+      setProducts((currentProducts) => currentProducts.filter((product) => product.id !== deleteId));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete product';
+      console.error('Delete failed:', error);
+      showError(message);
+    } finally {
+      setDeleteId(null);
+      setIsDeleteOpen(false);
+    }
+  };
 
   const handleExport = async () => {
     try {
@@ -252,20 +293,25 @@ export const ProductsPage: React.FC = () => {
       </div>
 
       {/* DataTable */}
-      <DataTable
-        headers={headers}
-        items={currentItems}
-        loading={loading}
-        emptyTitle="No products found"
-        emptyMessage="Try adjusting your filters or search terms, or create a new product."
-        emptyActionText="Create Product"
-        onEmptyAction={() => navigate('/admin/products/new')}
+      {loadError ? (
+        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 text-center shadow-sm">
+          <p className="text-sm font-semibold text-error">{loadError}</p>
+        </div>
+      ) : (
+        <DataTable
+          headers={headers}
+          items={currentItems}
+          loading={loading}
+          emptyTitle="No products found"
+          emptyMessage="Try adjusting your filters or search terms, or create a new product."
+          emptyActionText="Create Product"
+          onEmptyAction={() => navigate('/admin/products/new')}
 
         // Desktop Row Renderer
-        renderRow={(product, index) => {
+          renderRow={(product, index) => {
           const stockInfo = getStockStatus(product);
           return (
-            <tr key={product.id} className="hover:bg-surface/40 transition-colors group">
+            <tr key={`${product.id}-${index}`} className="hover:bg-surface/40 transition-colors group">
               <td className="px-6 py-4">
                 <div className="w-12 h-12 rounded bg-surface-container overflow-hidden inner-stroke">
                   <img
@@ -335,13 +381,13 @@ export const ProductsPage: React.FC = () => {
               </td>
             </tr>
           );
-        }}
+          }}
 
         // Mobile Card Renderer
-        renderCard={(product) => {
+          renderCard={(product, index) => {
           const stockInfo = getStockStatus(product);
           return (
-            <div key={product.id} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex gap-4 relative group">
+            <div key={`${product.id}-${index}`} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex gap-4 relative group">
               <div className="w-20 h-20 rounded bg-surface-container overflow-hidden inner-stroke flex-shrink-0">
                 <img
                   src={
@@ -391,8 +437,9 @@ export const ProductsPage: React.FC = () => {
               </div>
             </div>
           );
-        }}
-      />
+          }}
+        />
+      )}
 
       {/* Pagination Bar */}
       {totalPages > 1 && (

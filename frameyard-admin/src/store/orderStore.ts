@@ -40,6 +40,7 @@ type OrderPagination = {
 
 type OrderSummary = {
   totalCount: number;
+  revenueTotal: number;
   pendingCount: number;
   processingCount: number;
   deliveredCount: number;
@@ -73,6 +74,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   },
   summary: cached?.summary ?? {
     totalCount: 0,
+    revenueTotal: 0,
     pendingCount: 0,
     processingCount: 0,
     deliveredCount: 0,
@@ -133,7 +135,10 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       const nextState = {
         orders: nextOrders,
         pagination: get().pagination,
-        summary: get().summary,
+        summary: {
+          ...get().summary,
+          revenueTotal: nextOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0),
+        },
         lastQuery: get().lastQuery,
       };
       writeOrderCache(nextState);

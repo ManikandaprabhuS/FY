@@ -37,6 +37,25 @@ export const updateProductSchema = z.object({
   variantId: productFields.variantId.optional(),
   productIdentifier: productFields.productIdentifier.optional(),
   productName: productFields.productName.optional(),
+  name: z.string().trim().min(2).max(160).optional(),
+  description: z.string().trim().max(2_000).optional(),
+  brandName: z.string().trim().min(2).max(120).optional(),
+  material: z.string().trim().min(2).max(120).optional(),
+  availableColors: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
+  isActive: z.boolean().optional(),
+  images: z.array(z.object({
+    imageUrl: z.string().url(),
+    displayOrder: z.number().int().positive(),
+  })).max(10).optional(),
+  variants: z.array(z.object({
+    color: z.string().trim().min(1).max(80).optional().nullable(),
+    frameSize: z.string().trim().min(1).max(80),
+    mountType: z.string().trim().min(1).max(80),
+    glassType: z.enum(["NONE", "OPTION_1", "OPTION_2"]),
+    price: z.number().nonnegative(),
+    offerPrice: z.number().nonnegative().optional().nullable(),
+    stockQuantity: z.number().int().nonnegative(),
+  })).max(50).optional(),
 }).strict().refine((value) => Object.keys(value).length > 0, {
   message: "At least one product field is required",
 });

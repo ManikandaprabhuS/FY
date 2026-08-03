@@ -63,7 +63,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       );
 
 const user = response.user;
-const token = null;
+const token = response.accessToken || null;
 
 if (user?.role === 'CUSTOMER') {
   clearStoredAuthToken();

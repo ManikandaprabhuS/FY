@@ -32,6 +32,9 @@ productsRouter.post(
   validateBody(createAdminProductPreviewSchema),
   controller.createAdminProductPreview,
 );
+productsRouter.post("/:id/variants", catalogManagers, controller.createProductVariant);
+productsRouter.patch("/variants/:variantId", catalogManagers, controller.updateProductVariant);
+productsRouter.delete("/variants/:variantId", catalogManagers, controller.deleteProductVariant);
 productsRouter.get("/:id", controller.getProduct);
 productsRouter.post("/", catalogManagers, validateBody(createProductSchema), controller.createProduct);
 productsRouter.patch("/:id", catalogManagers, validateBody(updateProductSchema), controller.updateProduct);

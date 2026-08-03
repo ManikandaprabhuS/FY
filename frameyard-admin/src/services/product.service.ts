@@ -81,17 +81,16 @@ type ProductApi = {
   [key: string]: unknown;
 };
 
-const normalizeVariant = (variant: ProductVariantApi): ProductVariant => ({
+const normalizeVariant = (variant: ProductVariantApi): ProductVariant => {
+  const mrp = variant.mrp === null || variant.mrp === undefined ? Number(variant.price) : Number(variant.mrp);
+  const sellingPrice = Number(variant.price);
+  return {
   ...(variant as unknown as ProductVariant),
-  price: Number(variant.price),
-  offerPrice:
-    variant.offerPrice === null || variant.offerPrice === undefined
-      ? null
-      : Number(variant.offerPrice),
-  mrp:
-    variant.mrp === null || variant.mrp === undefined
-      ? null
-      : Number(variant.mrp),
+  // The edit form calls the list price `price` and discounted price
+  // `offerPrice`; the database stores these as mrp and price respectively.
+  price: mrp,
+  offerPrice: sellingPrice < mrp ? sellingPrice : null,
+  mrp,
   stockQuantity: Number(variant.stockQuantity ?? 0),
   createdAt: variant.createdAt
     ? new Date(variant.createdAt).toISOString()
@@ -102,7 +101,8 @@ const normalizeVariant = (variant: ProductVariantApi): ProductVariant => ({
   priceValidUntil: variant.priceValidUntil
     ? new Date(variant.priceValidUntil).toISOString()
     : null,
-});
+  };
+};
 
 const normalizeProduct = (product: ProductApi): Product => {
   const materialDetails = typeof product.material === 'object' ? product.material : undefined;
@@ -172,8 +172,8 @@ export const productService = {
     id: string,
     product: ProductPayload
   ): Promise<Product> => {
-    const response = await api.put(`/products/${id}`, product);
-    return normalizeProduct(response.data.product);
+    const response = await api.patch(`/products/${id}`, product);
+    return normalizeProduct(response.data.data?.product || response.data.product);
   },
 
   createVariant: async (
@@ -181,15 +181,15 @@ export const productService = {
     variant: VariantPayload
   ): Promise<ProductVariant> => {
     const response = await api.post(`/products/${productId}/variants`, variant);
-    return normalizeVariant(response.data.variant);
+    return normalizeVariant(response.data.data?.variant || response.data.variant);
   },
 
   updateVariant: async (
     variantId: string,
     variant: VariantPayload
   ): Promise<ProductVariant> => {
-    const response = await api.put(`/products/variants/${variantId}`, variant);
-    return normalizeVariant(response.data.variant);
+    const response = await api.patch(`/products/variants/${variantId}`, variant);
+    return normalizeVariant(response.data.data?.variant || response.data.variant);
   },
 
   deleteVariant: async (variantId: string): Promise<{ success: boolean; message: string }> => {
