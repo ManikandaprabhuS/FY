@@ -35,6 +35,14 @@ enum NotificationType {
   @@map("notification_type")
 }
 
+enum GlassType {
+  NONE
+  OPTION_1
+  OPTION_2
+
+  @@map("glass_type")
+}
+
 model User {
   id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                  String    @db.VarChar(120)
@@ -114,6 +122,8 @@ model Variant {
   color       String   @db.VarChar(80)
   frameSize   String   @map("frame_size") @db.VarChar(80)
   mountType   String   @map("mount_type") @db.VarChar(80)
+  glassType   GlassType @default(NONE) @map("glass_type")
+  stockQuantity Int    @default(0) @map("stock_quantity")
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
