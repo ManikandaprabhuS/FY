@@ -15,7 +15,7 @@ export const useOrders = (autoFetch = false) => {
     if (autoFetch && orders.length === 0) {
       fetchOrders();
     }
-  }, [autoFetch, fetchOrders, orders.length]);
+  }, [autoFetch, fetchOrders]);
 
   return {
     orders,

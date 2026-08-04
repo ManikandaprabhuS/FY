@@ -135,6 +135,7 @@ export const orderService = {
         limit: params.limit,
         search: params.search || undefined,
         status: params.status && params.status !== 'all' ? params.status : undefined,
+        dateFilter: params.dateFilter && params.dateFilter !== 'all' ? params.dateFilter : undefined,
         userId: params.userId,
       },
     });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { showError, showSuccess } from '../../utils/toast';
 import { useNavigate } from 'react-router-dom';
 import useProducts from '../../hooks/useProducts';
@@ -11,7 +11,7 @@ import { productService } from '../../services/product.service';
 
 export const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, loading, fetchProducts, editProduct } = useProducts(false);
+  const { products, loading, fetchProducts, editProduct, pagination } = useProducts(false);
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,8 +26,8 @@ export const ProductsPage: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchProducts({ page: currentPage, limit: itemsPerPage, search: searchTerm || undefined, isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' });
+  }, [fetchProducts, currentPage, itemsPerPage, searchTerm, statusFilter]);
 
   // Handle stock computation
   const getStockStatus = (product: Product) => {
@@ -50,7 +50,7 @@ export const ProductsPage: React.FC = () => {
   };
 
   // Filtered Products
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = useMemo(() => products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (product.brandName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,14 +63,13 @@ export const ProductsPage: React.FC = () => {
       (statusFilter === 'draft' && !product.isActive);
 
     return matchesSearch && matchesStatus;
-  });
+  }), [products, searchTerm, statusFilter]);
 
   // Pagination Logic
-  const totalItems = filteredProducts.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
+  const totalItems = pagination.total;
+  const totalPages = pagination.totalPages;
+  const indexOfFirstItem = totalItems === 0 ? 0 : (pagination.page - 1) * pagination.limit;
+  const currentItems = products;
 
   const handleStatusToggle = async (product: Product) => {
     const updated = await editProduct(product.id, {
@@ -99,7 +98,7 @@ export const ProductsPage: React.FC = () => {
   try {
     await productService.deleteProduct(deleteId);
     showSuccess('Product deleted successfully');
-    await fetchProducts();
+      await fetchProducts({ page: currentPage, limit: itemsPerPage, search: searchTerm || undefined, isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete product';
     console.error('Delete failed:', error);
@@ -112,7 +111,24 @@ export const ProductsPage: React.FC = () => {
 
   const handleExport = async () => {
     try {
-      const blob = await productService.exportInventory();
+      // Export the already-loaded/filtered catalog locally. The backend does
+      // not expose an export route, so this avoids a failing extra request.
+      const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+      const rows = [
+        ['Product ID', 'Product Name', 'Brand', 'Material', 'Colors', 'Variants', 'Status', 'Created Date'],
+        ...filteredProducts.map((product) => [
+          product.id,
+          product.name,
+          product.brandName,
+          product.material,
+          (product.availableColors || []).join(', '),
+          product.variants?.length || 0,
+          product.isActive ? 'Active' : 'Inactive',
+          new Date(product.createdAt).toISOString(),
+        ]),
+      ];
+      const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
+      const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' });
 
       const url = window.URL.createObjectURL(blob);
 
@@ -125,8 +141,10 @@ export const ProductsPage: React.FC = () => {
 
       link.remove();
       window.URL.revokeObjectURL(url);
+      showSuccess('Product export downloaded successfully');
     } catch (error) {
       console.error("Export failed:", error);
+      showError('Unable to export products');
     }
   };
 
@@ -409,7 +427,7 @@ export const ProductsPage: React.FC = () => {
               <option value={50}>50</option>
             </select>
             <span className="text-xs text-on-surface-variant/70 ml-2">
-              Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, totalItems)} of {totalItems} entries
+              Showing {totalItems === 0 ? 0 : indexOfFirstItem + 1}-{Math.min(indexOfFirstItem + currentItems.length, totalItems)} of {totalItems} entries
             </span>
           </div>
 

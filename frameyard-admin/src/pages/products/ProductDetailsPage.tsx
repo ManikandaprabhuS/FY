@@ -95,35 +95,27 @@ export const ProductDetailsPage: React.FC = () => {
     }
 
     clearCurrentProduct();
-    const resetTimer = window.setTimeout(() => {
-      setName('');
-      setDescription('');
-      setBrand('');
-      setMaterial('Solid Oak');
-      setColors(['#0f172a', '#fef3c7', '#ffffff']);
-      setStatus('active');
-      setVariants([]);
-      setImages([]);
-      setImageError(null);
-    }, 0);
-
-    return () => window.clearTimeout(resetTimer);
+    setName('');
+    setDescription('');
+    setBrand('');
+    setMaterial('Solid Oak');
+    setColors(['#0f172a', '#fef3c7', '#ffffff']);
+    setStatus('active');
+    setVariants([]);
+    setImages([]);
+    setImageError(null);
   }, [id, isNew, fetchProductById, clearCurrentProduct]);
 
   useEffect(() => {
     if (!isNew && currentProduct) {
-      const applyTimer = window.setTimeout(() => {
-        setName(currentProduct.name);
-        setDescription(currentProduct.description || '');
-        setBrand(currentProduct.brandName);
-        setMaterial(currentProduct.material);
-        setColors(currentProduct.availableColors || []);
-        setStatus(currentProduct.isActive ? 'active' : 'draft');
-        setVariants(currentProduct.variants);
-        setImages(mapCurrentProductImages(currentProduct.images || []));
-      }, 0);
-
-      return () => window.clearTimeout(applyTimer);
+      setName(currentProduct.name);
+      setDescription(currentProduct.description || '');
+      setBrand(currentProduct.brandName);
+      setMaterial(currentProduct.material);
+      setColors(currentProduct.availableColors || []);
+      setStatus(currentProduct.isActive ? 'active' : 'draft');
+      setVariants(currentProduct.variants);
+      setImages(mapCurrentProductImages(currentProduct.images || []));
     }
   }, [currentProduct, isNew]);
 

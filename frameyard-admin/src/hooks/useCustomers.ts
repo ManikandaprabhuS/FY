@@ -50,7 +50,6 @@ export const useCustomers = (
   }, [
     autoFetch,
     fetchCustomers,
-    customers.length,
   ]);
 
   return {

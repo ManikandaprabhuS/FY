@@ -59,16 +59,15 @@ const EmployeesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchEmployees();
-  }, [currentPage, statusFilter, isAdmin]);
-
-  useEffect(() => {
     const timer = window.setTimeout(() => {
-      setCurrentPage(1);
+      if (searchTerm.trim() && currentPage !== 1) {
+        setCurrentPage(1);
+        return;
+      }
       void fetchEmployees();
-    }, 350);
+    }, searchTerm.trim() ? 300 : 0);
     return () => window.clearTimeout(timer);
-  }, [searchTerm]);
+  }, [currentPage, statusFilter, isAdmin, searchTerm]);
 
   const openCreateModal = () => {
     setEditingEmployee(null);

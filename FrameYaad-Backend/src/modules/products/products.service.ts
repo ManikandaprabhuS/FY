@@ -33,7 +33,7 @@ const assertActiveReferences = async (materialId: string, variantId: string): Pr
 };
 
 export const listProducts = async (rawQuery: unknown, role: UserRole) => {
-  const { page, limit, search, materialId, variantId } = productListQuerySchema.parse(rawQuery);
+  const { page, limit, search, materialId, variantId, isActive } = productListQuerySchema.parse(rawQuery);
   const customerVisibility: Prisma.ProductWhereInput = role === UserRole.CUSTOMER
     ? { material: { isActive: true }, variant: { isActive: true } }
     : {};
@@ -41,6 +41,7 @@ export const listProducts = async (rawQuery: unknown, role: UserRole) => {
     ...customerVisibility,
     ...(materialId ? { materialId } : {}),
     ...(variantId ? { variantId } : {}),
+    ...(isActive === undefined ? {} : { material: { isActive } }),
     ...(search ? { OR: [
       { productName: { contains: search, mode: "insensitive" } },
       { productIdentifier: { contains: search, mode: "insensitive" } },
@@ -110,13 +111,16 @@ export const createAdminProductPreview = async (
         images: input.images.length > 0 ? { create: input.images.map((image, index) => ({ imageUrl: image.imageUrl, isPrimary: index === 0 })) } : undefined,
       },
     });
-    const variants = await Promise.all(input.variants.map((item) => transaction.variant.create({ data: {
-      productId: product.id, color: item.color ?? input.availableColors[0] ?? "Standard", frameSize: item.frameSize,
-      mountType: item.mountType, glassType: item.glassType, stockQuantity: item.stockQuantity,
-      mrp: item.price, price: item.offerPrice ?? item.price, isActive: input.isActive, createdById: actorId,
-    }})));
+    const variants = [];
+    for (const item of input.variants) {
+      variants.push(await transaction.variant.create({ data: {
+        productId: product.id, color: item.color ?? input.availableColors[0] ?? "Standard", frameSize: item.frameSize,
+        mountType: item.mountType, glassType: item.glassType, stockQuantity: item.stockQuantity,
+        mrp: item.price, price: item.offerPrice ?? item.price, isActive: input.isActive, createdById: actorId,
+      }}));
+    }
     return transaction.product.update({ where: { id: product.id }, data: { variantId: variants[0]!.id }, select: productViewSelect });
-  });
+  }, { maxWait: 10000, timeout: 30000 });
 };
 
 export const updateAdminProductPreview = async (
@@ -170,7 +174,7 @@ export const updateAdminProductPreview = async (
       },
       select: productViewSelect,
     });
-  });
+  }, { maxWait: 10000, timeout: 30000 });
 };
 
 export const updateAdminVariant = async (id: string, input: UpdateAdminVariantInput) =>

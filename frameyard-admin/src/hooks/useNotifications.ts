@@ -22,7 +22,7 @@ export const useNotifications = (autoFetch = false) => {
 
       return () => clearInterval(interval);
     }
-  }, [autoFetch, fetchNotifications, notifications.length]);
+  }, [autoFetch, fetchNotifications]);
 
   return {
     notifications,

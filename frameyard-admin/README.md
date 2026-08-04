@@ -89,3 +89,15 @@ npm run build
 
 - The dashboard is designed to stay thin and rely on backend APIs for business logic.
 - Search and navigation are intentionally role-aware for faster admin workflows.
+
+## Recent Fixes and Completed Work
+
+- Products use backend pagination (10 products per page) with server-side search and Active/Draft filtering.
+- Orders use backend pagination (5 orders per page) with responsive status/search/date filtering.
+- Customers use backend pagination (8 customers per page).
+- Product, order, and customer exports download escaped CSV files with success/error toasts.
+- Customer exports fetch full order details so product/order-item fields are included.
+- Global search routes `FY-####` order numbers to Orders and phone numbers to the matching customer profile.
+- Product add/edit supports multiple variants and image persistence through the existing APIs.
+- Removed duplicate fetches and unnecessary render delays from product, order, notification, and employee pages.
+- Shared toasts now use green success styling/check icons and red error styling/icons.

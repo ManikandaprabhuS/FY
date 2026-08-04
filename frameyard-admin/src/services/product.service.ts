@@ -1,5 +1,6 @@
 import api from './api';
 import { Product, ProductImage, ProductVariant } from '../types';
+import type { Pagination } from './contracts';
 
 export type ProductImagePayload = {
   imageUrl: string;
@@ -153,9 +154,12 @@ export const uploadProductImages = async (
 };
 
 export const productService = {
-  getProducts: async (): Promise<Product[]> => {
-    const response = await api.get('/products');
-    return (response.data.data?.products || response.data.products || []).map(normalizeProduct);
+  getProducts: async (params: { page?: number; limit?: number; search?: string; isActive?: boolean } = {}): Promise<{ products: Product[]; pagination: Pagination }> => {
+    const response = await api.get('/products', { params });
+    return {
+      products: (response.data.data?.products || response.data.products || []).map(normalizeProduct),
+      pagination: response.data.data?.pagination || { page: params.page || 1, limit: params.limit || 10, total: 0, totalPages: 1 },
+    };
   },
 
   getProductById: async (id: string): Promise<Product> => {

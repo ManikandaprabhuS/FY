@@ -5,6 +5,7 @@ export const useProducts = (autoFetch = false) => {
   const products = useProductStore((state) => state.products);
   const currentProduct = useProductStore((state) => state.currentProduct);
   const loading = useProductStore((state) => state.loading);
+  const pagination = useProductStore((state) => state.pagination);
   const error = useProductStore((state) => state.error);
   const fetchProducts = useProductStore((state) => state.fetchProducts);
   const fetchProductById = useProductStore((state) => state.fetchProductById);
@@ -19,12 +20,13 @@ export const useProducts = (autoFetch = false) => {
     if (autoFetch && products.length === 0) {
       fetchProducts();
     }
-  }, [autoFetch, fetchProducts, products.length]);
+  }, [autoFetch, fetchProducts]);
 
   return {
     products,
     currentProduct,
     loading,
+    pagination,
     error,
     fetchProducts,
     fetchProductById,

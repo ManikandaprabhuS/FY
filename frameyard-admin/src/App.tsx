@@ -20,8 +20,14 @@ function App() {
             fontSize: '14px',
             fontWeight: 600,
           },
-          success: { iconTheme: { primary: '#111111', secondary: '#ffffff' } },
-          error: { iconTheme: { primary: '#dc2626', secondary: '#ffffff' } },
+          success: {
+            style: { background: '#f0fdf4', color: '#166534', border: '1px solid #86efac' },
+            iconTheme: { primary: '#16a34a', secondary: '#ffffff' },
+          },
+          error: {
+            style: { background: '#fef2f2', color: '#991b1b', border: '1px solid #fca5a5' },
+            iconTheme: { primary: '#dc2626', secondary: '#ffffff' },
+          },
         }}
       />
     </>

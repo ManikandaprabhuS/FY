@@ -74,19 +74,26 @@ export const customerService = {
 
   lookupCustomerByPhoneNumber: async (phoneNumber: string): Promise<CustomerLookupResponse> => {
     const normalizedInput = phoneNumber.replace(/\D/g, '');
-    const requests = [
-      api.get<ApiEnvelope<{ users: CustomerApi[]; pagination: Pagination }>>('/users', {
-        params: { search: normalizedInput || phoneNumber, page: 1, limit: 50 },
-      }),
-      api.get<ApiEnvelope<{ users: CustomerApi[]; pagination: Pagination }>>('/users', {
-        params: { page: 1, limit: 100 },
-      }),
-    ];
-    const responses = await Promise.all(requests);
-    const users = responses.flatMap((response) => response.data.data.users);
+    const first = await api.get<ApiEnvelope<{ users: CustomerApi[]; pagination: Pagination }>>('/users', {
+      params: { search: normalizedInput || phoneNumber, page: 1, limit: 100 },
+    });
+    let users = first.data.data.users;
+    // Search can miss numbers formatted with a country code. Walk remaining
+    // pages only when the indexed search returned no candidate.
+    if (!users.some((user) => String(user.phoneNumber ?? '').replace(/\D/g, '').endsWith(normalizedInput))) {
+      const totalPages = first.data.data.pagination.totalPages;
+      if (totalPages > 1) {
+        const responses = await Promise.all(
+          Array.from({ length: totalPages - 1 }, (_, index) => api.get<ApiEnvelope<{ users: CustomerApi[] }>>('/users', {
+            params: { page: index + 2, limit: 100 },
+          }))
+        );
+        users = users.concat(responses.flatMap((response) => response.data.data.users));
+      }
+    }
     const customer = users.find((user) => {
       const normalizedUserPhone = String(user.phoneNumber ?? '').replace(/\D/g, '');
-      return normalizedUserPhone === normalizedInput || String(user.phoneNumber ?? '') === phoneNumber;
+      return normalizedUserPhone === normalizedInput || normalizedUserPhone.endsWith(normalizedInput) || String(user.phoneNumber ?? '') === phoneNumber;
     });
     if (!customer?.id) throw new Error('Customer not found');
     return {

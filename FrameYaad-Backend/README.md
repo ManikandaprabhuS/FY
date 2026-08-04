@@ -130,6 +130,16 @@ All application tables have RLS enabled. There are no browser policies because E
 
 ## API Reference
 
+## Recent Backend Updates
+
+- Product listing supports server-side pagination with `page`, `limit`, `search`, and `isActive` filters.
+- Order listing supports server-side pagination and status/customer search filters.
+- Customer and employee listing endpoints return pagination metadata.
+- Product create/edit transactions support multiple variants and image persistence.
+- Product and edit transactions use extended Prisma timeouts for multi-variant/image operations.
+- Variant price validation follows the database rule `selling price <= MRP`.
+- Authentication, role checks, and structured method-call logging remain enforced for all protected operations.
+
 All endpoints use the default prefix `/api/v1`.
 
 ### Authentication and self-service

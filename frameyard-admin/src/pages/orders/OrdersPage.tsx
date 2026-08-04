@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import useOrders from '../../hooks/useOrders';
 import DataTable from '../../components/tables/DataTable';
 import Modal from '../../components/ui/Modal';
 import { Search, Calendar, ArrowRight, Eye, Mail, Phone, ShoppingCart, Download } from 'lucide-react';
 import { Order, OrderStatus } from '../../types';
-import { orderService } from '../../services/order.service';
 import { showError, showSuccess } from '../../utils/toast';
 
 const getSearchTermFromQueryString = (search: string) => {
@@ -28,22 +27,18 @@ export const OrdersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>(() => getStatusFilterFromQueryString(location.search));
   const [dateFilter, setDateFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(5);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      const nextSearchTerm = getSearchTermFromQueryString(location.search);
-      const nextStatusFilter = getStatusFilterFromQueryString(location.search);
-      setSearchTerm(nextSearchTerm);
-      setDebouncedSearchTerm(nextSearchTerm);
-      setStatusFilter(nextStatusFilter);
-      setCurrentPage(1);
-    }, 0);
-
-    return () => window.clearTimeout(timeout);
+    const nextSearchTerm = getSearchTermFromQueryString(location.search);
+    const nextStatusFilter = getStatusFilterFromQueryString(location.search);
+    setSearchTerm(nextSearchTerm);
+    setDebouncedSearchTerm(nextSearchTerm);
+    setStatusFilter(nextStatusFilter);
+    setCurrentPage(1);
   }, [location.search]);
 
   useEffect(() => {
@@ -64,7 +59,7 @@ export const OrdersPage: React.FC = () => {
     }, {
       silent: orders.length > 0,
     });
-  }, [currentPage, dateFilter, debouncedSearchTerm, fetchOrders, itemsPerPage, orders.length, statusFilter]);
+  }, [currentPage, dateFilter, debouncedSearchTerm, fetchOrders, itemsPerPage, statusFilter]);
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     const updated = await changeOrderStatus(orderId, newStatus);
@@ -81,20 +76,34 @@ export const OrdersPage: React.FC = () => {
   };
 
   const exportOrdersReport = async () => {
-    const blob = await orderService.exportOrders({
-      search: searchTerm.trim() || undefined,
-      status: statusFilter === 'all' ? undefined : statusFilter,
-      dateFilter: dateFilter === 'all' ? undefined : dateFilter,
-    });
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `orders-report-${Date.now()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+    try {
+      const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+      const rows = [
+        ['Order Number', 'Customer', 'Phone', 'Status', 'Total Amount', 'Created At'],
+        ...orders.map((order) => [
+          order.orderNumber,
+          order.user?.name ?? '',
+          order.user?.phoneNumber ?? order.phoneNumber ?? '',
+          order.orderStatus,
+          String(order.totalAmount),
+          order.createdAt,
+        ]),
+      ];
+      const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
+      const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `orders-report-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showSuccess('Orders export downloaded successfully');
+    } catch (error) {
+      console.error('Orders export failed:', error);
+      showError('Unable to export orders');
+    }
   };
 
   const getCustomerName = (order: Order) => order.user?.name || 'Unknown Customer';
@@ -142,6 +151,12 @@ export const OrdersPage: React.FC = () => {
   const startItem = totalItems === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
   const endItem = Math.min(pagination.page * pagination.limit, totalItems);
   const isFiltered = searchTerm.trim() !== '' || statusFilter !== 'all' || dateFilter !== 'all';
+  // Apply the selected status immediately while the server refreshes. This
+  // keeps the table responsive on slower API/database connections.
+  const visibleOrders = useMemo(
+    () => statusFilter === 'all' ? orders : orders.filter((order) => order.orderStatus === statusFilter),
+    [orders, statusFilter],
+  );
   const emptyTitle = statusFilter !== 'all' ? `No ${statusFilter.toLowerCase()} orders` : 'No orders found';
   const emptyMessage = isFiltered
     ? 'No orders match the current filters. Try clearing one of the filters or search terms.'
@@ -277,7 +292,7 @@ export const OrdersPage: React.FC = () => {
 
         <DataTable
           headers={headers}
-          items={orders}
+          items={visibleOrders}
           loading={loading}
           emptyTitle={emptyTitle}
           emptyMessage={emptyMessage}

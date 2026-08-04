@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import { Product } from '../types';
+import type { Pagination } from '../services/contracts';
 import { ProductPayload, productService, VariantPayload } from '../services/product.service';
 
 interface ProductState {
   products: Product[];
   currentProduct: Product | null;
   loading: boolean;
+  pagination: Pagination;
   error: string | null;
-  fetchProducts: () => Promise<void>;
+  fetchProducts: (params?: { page?: number; limit?: number; search?: string; isActive?: boolean }) => Promise<void>;
   fetchProductById: (id: string) => Promise<void>;
   addProduct: (product: ProductPayload) => Promise<Product | null>;
   editProduct: (id: string, product: ProductPayload) => Promise<boolean>;
@@ -21,13 +23,14 @@ export const useProductStore = create<ProductState>((set) => ({
   products: [],
   currentProduct: null,
   loading: false,
+  pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
   error: null,
 
-  fetchProducts: async () => {
+  fetchProducts: async (params = {}) => {
     set({ loading: true, error: null });
     try {
-      const data = await productService.getProducts();
-      set({ products: data, loading: false });
+      const data = await productService.getProducts(params);
+      set({ products: data.products, pagination: data.pagination, loading: false });
     } catch (err: any) {
       set({ error: err.response?.data?.message || 'Failed to fetch products', loading: false });
     }

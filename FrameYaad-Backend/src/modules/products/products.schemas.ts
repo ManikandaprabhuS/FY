@@ -85,4 +85,5 @@ export const productListQuerySchema = z.object({
   search: z.string().trim().max(160).optional(),
   materialId: z.string().uuid().optional(),
   variantId: z.string().uuid().optional(),
+  isActive: z.enum(["true", "false"]).transform((value) => value === "true").optional(),
 });

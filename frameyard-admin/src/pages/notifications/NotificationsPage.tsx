@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNotifications } from '../../hooks/useNotifications';
 import { Bell, CheckCircle2, Info, Check } from 'lucide-react';
 
@@ -6,16 +6,18 @@ export const NotificationsPage: React.FC = () => {
   const { notifications, loading, markAllAsRead, toggleNotificationRead, removeNotification } = useNotifications(true);
   const [filter, setFilter] = useState<'all' | 'read' | 'unread'>('all');
 
-  const totalCount = notifications.length;
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const readCount = notifications.filter((n) => n.read).length;
+  const { totalCount, unreadCount, readCount } = useMemo(() => ({
+    totalCount: notifications.length,
+    unreadCount: notifications.filter((n) => !n.read).length,
+    readCount: notifications.filter((n) => n.read).length,
+  }), [notifications]);
 
-  const filteredNotifications = notifications.filter((n) => {
+  const filteredNotifications = useMemo(() => notifications.filter((n) => {
     if (filter === 'all') return true;
     if (filter === 'unread') return !n.read;
     if (filter === 'read') return n.read;
     return true;
-  });
+  }), [notifications, filter]);
 
   const getIconForType = (type: string) => {
     switch (type) {
