@@ -14,7 +14,7 @@ const emptyProfileForm = {
 };
 
 export const ProfilePage: React.FC = () => {
-  const { user, updateProfile, changePassword } = useAuth();
+  const { user, updateProfile, changePassword, error: authError } = useAuth();
   const [formData, setFormData] = useState(emptyProfileForm);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -41,7 +41,7 @@ export const ProfilePage: React.FC = () => {
     if (success) {
       showSuccess('Profile updated successfully');
     } else {
-      showError('Failed to update profile');
+      showError(authError || 'Failed to update profile');
     }
   };
 

@@ -231,5 +231,17 @@ export const changePassword = async (
   await supabaseAdmin.auth.admin.signOut(accessToken, "global");
 };
 
-export const updateOwnProfile = (userId: string, input: ProfileInput): Promise<UserView> =>
-  prisma.user.update({ where: { id: userId }, data: input, select: userViewSelect });
+export const updateOwnProfile = async (userId: string, input: ProfileInput): Promise<UserView> => {
+  if (input.phoneNumber !== undefined && input.phoneNumber !== null) {
+    const normalizedPhone = input.phoneNumber.replace(/[\s()-]/g, '');
+    const conflict = await prisma.user.findFirst({
+      where: { phoneNumber: normalizedPhone, NOT: { id: userId } },
+      select: { id: true },
+    });
+    if (conflict) {
+      throw new ApiError(409, "This phone number is already used by another account", "PHONE_NUMBER_IN_USE");
+    }
+    input = { ...input, phoneNumber: normalizedPhone };
+  }
+  return prisma.user.update({ where: { id: userId }, data: input, select: userViewSelect });
+};
