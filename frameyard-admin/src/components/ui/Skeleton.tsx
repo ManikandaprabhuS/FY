@@ -10,7 +10,7 @@ export const Skeleton: React.FC<SkeletonProps> & {
   Text: React.FC<{ lines?: number }>;
 } = ({ className = '' }) => {
   return (
-    <div className={`animate-pulse bg-outline-variant/40 rounded ${className}`} />
+    <div className={`animate-pulse rounded bg-gradient-to-r from-outline-variant/20 via-outline-variant/50 to-outline-variant/20 shadow-sm ${className}`} />
   );
 };
 
