@@ -209,8 +209,8 @@ export const ProductDetailsPage: React.FC = () => {
       };
       setImageError(
         uploadError?.response?.data?.message ||
-          uploadError?.message ||
-          'Failed to upload images.'
+        uploadError?.message ||
+        'Failed to upload images.'
       );
     } finally {
       setIsUploadingImages(false);
@@ -331,7 +331,6 @@ export const ProductDetailsPage: React.FC = () => {
         price: newVariant.price,
         offerPrice: newVariant.offerPrice,
         stockQuantity: newVariant.stockQuantity,
-        priceValidUntil: newVariant.priceValidUntil,
       };
       const saved = editingVariant
         ? await editVariant(editingVariant.id, payload)
@@ -515,7 +514,7 @@ export const ProductDetailsPage: React.FC = () => {
             disabled={isUploadingImages || isSaving}
             className="h-10 w-full rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:scale-[1.01] hover:bg-primary/95 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
-            {isSaving ? 'Saving...' : 'Save Product'}
+            {isSaving ? 'Saving...' : 'Update Product'}
           </button>
         </div>
       </div>
@@ -592,9 +591,8 @@ export const ProductDetailsPage: React.FC = () => {
                         key={color.code}
                         type="button"
                         onClick={() => togglePresetColor(color.code)}
-                        className={`w-7 h-7 rounded-full border ring-offset-1 transition-all ${
-                          isSelected ? 'ring-2 ring-primary border-transparent' : 'border-outline-variant hover:scale-105'
-                        }`}
+                        className={`w-7 h-7 rounded-full border ring-offset-1 transition-all ${isSelected ? 'ring-2 ring-primary border-transparent' : 'border-outline-variant hover:scale-105'
+                          }`}
                         style={{ backgroundColor: color.code }}
                         title={color.name}
                       />
@@ -671,9 +669,9 @@ export const ProductDetailsPage: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 font-semibold">
                           <div className="flex flex-col">
-                            <span>â‚¹{variant.price.toFixed(2)}</span>
+                            <span>&#8377;{variant.price.toFixed(2)}</span>
                             {variant.offerPrice && (
-                              <span className="text-xs text-error font-medium">â‚¹{variant.offerPrice.toFixed(2)} Offer</span>
+                              <span className="text-xs text-error font-medium">&#8377;{variant.offerPrice.toFixed(2)} Offer</span>
                             )}
                           </div>
                         </td>
@@ -749,9 +747,8 @@ export const ProductDetailsPage: React.FC = () => {
                 images.map((image, index) => (
                   <div key={image.id} className={index === 0 ? 'col-span-2' : ''}>
                     <div
-                      className={`relative group overflow-hidden rounded-lg bg-surface-container inner-stroke ${
-                        index === 0 ? 'aspect-[4/3]' : 'aspect-square'
-                      }`}
+                      className={`relative group overflow-hidden rounded-lg bg-surface-container inner-stroke ${index === 0 ? 'aspect-[4/3]' : 'aspect-square'
+                        }`}
                     >
                       {isVideoUrl(image.imageUrl) ? (
                         <video

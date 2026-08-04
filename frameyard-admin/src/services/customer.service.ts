@@ -96,10 +96,10 @@ export const customerService = {
     };
   },
 
-  getCustomers: async (page = 1, limit = 10): Promise<CustomerResponse> => {
+  getCustomers: async (page = 1, limit = 10, search?: string): Promise<CustomerResponse> => {
     const [userResponse, orderResponse] = await Promise.all([
       api.get<ApiEnvelope<{ users: CustomerApi[]; pagination: Pagination }>>('/users', {
-        params: { page, limit },
+        params: { page, limit, ...(search ? { search } : {}) },
       }),
       api.get<ApiEnvelope<{ orders: OrderSummaryApi[]; pagination: Pagination }>>('/orders', {
         params: { page: 1, limit: 100 },

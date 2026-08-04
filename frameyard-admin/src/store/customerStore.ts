@@ -12,7 +12,8 @@ interface CustomerState {
 
   fetchCustomers: (
     page?: number,
-    limit?: number
+    limit?: number,
+    search?: string
   ) => Promise<void>;
 }
 
@@ -26,7 +27,8 @@ export const useCustomerStore = create<CustomerState>((set) => ({
 
   fetchCustomers: async (
     page = 1,
-    limit = 10
+    limit = 10,
+    search
   ) => {
     set({
       loading: true,
@@ -37,7 +39,8 @@ export const useCustomerStore = create<CustomerState>((set) => ({
       const data =
         await customerService.getCustomers(
           page,
-          limit
+          limit,
+          search
         );
 
       set({

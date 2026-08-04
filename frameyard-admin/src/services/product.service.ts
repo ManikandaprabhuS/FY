@@ -83,11 +83,13 @@ type ProductApi = {
 
 const normalizeVariant = (variant: ProductVariantApi): ProductVariant => ({
   ...(variant as unknown as ProductVariant),
-  price: Number(variant.price),
+  price: Number(variant.mrp ?? variant.price),
   offerPrice:
-    variant.offerPrice === null || variant.offerPrice === undefined
-      ? null
-      : Number(variant.offerPrice),
+    variant.offerPrice !== null && variant.offerPrice !== undefined
+      ? Number(variant.offerPrice)
+      : variant.mrp !== null && variant.mrp !== undefined && Number(variant.price) < Number(variant.mrp)
+        ? Number(variant.price)
+        : null,
   mrp:
     variant.mrp === null || variant.mrp === undefined
       ? null
@@ -172,7 +174,7 @@ export const productService = {
     id: string,
     product: ProductPayload
   ): Promise<Product> => {
-    const response = await api.put(`/products/${id}`, product);
+    const response = await api.patch(`/products/${id}/admin-preview`, product);
     return normalizeProduct(response.data.product);
   },
 
@@ -188,7 +190,7 @@ export const productService = {
     variantId: string,
     variant: VariantPayload
   ): Promise<ProductVariant> => {
-    const response = await api.put(`/products/variants/${variantId}`, variant);
+    const response = await api.patch(`/products/variants/${variantId}`, variant);
     return normalizeVariant(response.data.variant);
   },
 

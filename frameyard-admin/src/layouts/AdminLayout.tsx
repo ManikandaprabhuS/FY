@@ -26,6 +26,7 @@ export const AdminLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -86,7 +87,7 @@ export const AdminLayout: React.FC = () => {
       return;
     }
 
-    navigate(`/admin/orders?search=${encodeURIComponent(value)}`);
+    navigate(`/admin/customers?search=${encodeURIComponent(value)}`);
   };
 
   const submitGlobalSearch = async (value: string) => {
@@ -302,12 +303,25 @@ export const AdminLayout: React.FC = () => {
                 className="bg-transparent border-none focus:ring-0 text-xs text-on-surface w-full p-0 placeholder-on-surface-variant/60 focus:outline-none"
                 placeholder="Search orders, customers..."
                 type="text"
+                value={globalSearch}
+                onChange={(event) => setGlobalSearch(event.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     void submitGlobalSearch(e.currentTarget.value);
                   }
                 }}
               />
+              {globalSearch && (
+                <button
+                  type="button"
+                  onClick={() => setGlobalSearch('')}
+                  className="ml-2 rounded-full p-0.5 text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                  aria-label="Clear search"
+                  title="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
 
             <button

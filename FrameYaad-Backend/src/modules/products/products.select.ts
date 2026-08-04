@@ -20,7 +20,8 @@ export const productViewSelect = {
       isActive: true,
     },
   },
-  variant: {
+  variants: {
+    orderBy: { createdAt: "asc" },
     select: {
       id: true,
       color: true,
@@ -32,6 +33,9 @@ export const productViewSelect = {
       price: true,
       isActive: true,
     },
+  },
+  variant: {
+    select: { id: true, isActive: true },
   },
   images: {
     select: {

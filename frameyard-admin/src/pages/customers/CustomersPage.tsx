@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { DataTable } from '../../components/tables/DataTable';
 import Badge from '../../components/ui/Badge';
 import { Search, Download,Mail, Phone, ShoppingBag, MapPin, CheckCircle, XCircle } from 'lucide-react';
@@ -29,12 +29,15 @@ const getTotalSpent = (customer: Customer) =>
   customer.orders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
 
 export const CustomersPage: React.FC = () => {
- const {  customers,  loading, fetchCustomers} = useCustomers(false);
+ const { customers, loading, totalPages, fetchCustomers } = useCustomers(false);
+  const [searchParams] = useSearchParams();
+  const requestedSearch = searchParams.get('search') ?? '';
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(requestedSearch);
   const PAGE_SIZE = 10;
   useEffect(() => {
-  fetchCustomers(currentPage, PAGE_SIZE);}, [currentPage, fetchCustomers]);
+  fetchCustomers(currentPage, PAGE_SIZE, requestedSearch);}, [currentPage, fetchCustomers, requestedSearch]);
+  useEffect(() => { setSearchTerm(requestedSearch); setCurrentPage(1); }, [requestedSearch]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const exportCustomerReport = () => {
 
@@ -520,14 +523,13 @@ const growthPercentage =
   </button>
 
   <span className="text-sm font-medium">
-    Page {currentPage}
+    Page {currentPage} of {totalPages}
   </span>
 
   <button
-    onClick={() =>
-      setCurrentPage((prev) => prev + 1)
-    }
-    className="px-4 py-2 border border-outline-variant rounded-lg"
+    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+    disabled={currentPage >= totalPages}
+    className="px-4 py-2 border border-outline-variant rounded-lg disabled:opacity-50"
   >
     Next
   </button>

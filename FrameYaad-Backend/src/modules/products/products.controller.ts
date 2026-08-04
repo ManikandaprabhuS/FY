@@ -4,12 +4,15 @@ import type { Request } from "express";
 import type { z } from "zod";
 
 import { ApiError } from "../../utils/api-error";
-import type { createAdminProductPreviewSchema, createProductSchema, updateProductSchema } from "./products.schemas";
+import type { createAdminProductPreviewSchema, createAdminVariantSchema, createProductSchema, updateAdminProductPreviewSchema, updateAdminVariantSchema, updateProductSchema } from "./products.schemas";
 import { productIdSchema } from "./products.schemas";
 import * as productsService from "./products.service";
 
 type CreateProductBody = z.infer<typeof createProductSchema>;
 type CreateAdminProductPreviewBody = z.infer<typeof createAdminProductPreviewSchema>;
+type UpdateAdminProductPreviewBody = z.infer<typeof updateAdminProductPreviewSchema>;
+type UpdateAdminVariantBody = z.infer<typeof updateAdminVariantSchema>;
+type CreateAdminVariantBody = z.infer<typeof createAdminVariantSchema>;
 type UpdateProductBody = z.infer<typeof updateProductSchema>;
 
 const authFrom = (request: Parameters<RequestHandler>[0]): { id: string; role: UserRole } => {
@@ -53,6 +56,37 @@ export const uploadProductImages: RequestHandler = async (request, response) => 
 
   // The existing admin client reads `response.data.images`; retain that contract.
   response.status(201).json({ success: true, images });
+};
+
+export const updateAdminProductPreview: RequestHandler = async (request, response) => {
+  const auth = authFrom(request);
+  const product = await productsService.updateAdminProductPreview(
+    idFrom(request.params.id),
+    request.body as UpdateAdminProductPreviewBody,
+    auth.role,
+  );
+  response.status(200).json({ success: true, product });
+};
+
+export const updateAdminVariant: RequestHandler = async (request, response) => {
+  authFrom(request);
+  const variant = await productsService.updateAdminVariant(
+    idFrom(request.params.id),
+    request.body as UpdateAdminVariantBody,
+  );
+  response.status(200).json({ success: true, variant });
+};
+
+export const createAdminVariant: RequestHandler = async (request, response) => {
+  const auth = authFrom(request);
+  const variant = await productsService.createAdminVariant(idFrom(request.params.id), request.body as CreateAdminVariantBody, auth.id, auth.role);
+  response.status(201).json({ success: true, variant });
+};
+
+export const deleteAdminVariant: RequestHandler = async (request, response) => {
+  authFrom(request);
+  await productsService.deleteAdminVariant(idFrom(request.params.id));
+  response.status(204).send();
 };
 
 export const updateProduct: RequestHandler = async (request, response) => {

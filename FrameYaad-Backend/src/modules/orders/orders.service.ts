@@ -62,12 +62,12 @@ export const checkout = (userId: string, input: CheckoutInput) =>
     if (!cart || cart.items.length === 0) {
       throw new ApiError(400, "Cart is empty", "CART_EMPTY");
     }
-    if (cart.items.some((item) => !item.product.material.isActive || !item.product.variant.isActive)) {
+    if (cart.items.some((item) => !item.product.material.isActive || !item.product.variant?.isActive)) {
       throw new ApiError(409, "Cart contains an unavailable product", "CART_PRODUCT_UNAVAILABLE");
     }
 
     const orderItems = cart.items.map((item) => {
-      const price = item.product.variant.price;
+      const price = item.product.variant!.price;
       return {
         productIdentifier: item.productIdentifier,
         quantity: item.quantity,
