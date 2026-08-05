@@ -43,6 +43,26 @@ enum GlassType {
   @@map("glass_type")
 }
 
+enum CouponType {
+  PERCENTAGE
+  FLAT
+  LIMITED_COUNT
+  ORDER_PRICE_ABOVE
+  ONCE_PER_USER
+  NEW_USER
+  FESTIVAL
+  BUY_ONE_GET_ONE
+  BUY_TWO_GET_ONE
+  @@map("coupon_type")
+}
+
+enum CouponDiscountType {
+  PERCENTAGE
+  FLAT
+  NONE
+  @@map("coupon_discount_type")
+}
+
 model User {
   id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                  String    @db.VarChar(120)
@@ -73,10 +93,55 @@ model User {
   wishlistItems   Wishlist[]
   notifications   Notification[] @relation("NotificationRecipient")
   notificationsRead Notification[] @relation("NotificationReadBy")
+  couponsCreated Coupon[]       @relation("CouponCreatedBy")
 
   @@index([createdById])
   @@index([role, isActive])
   @@map("users")
+}
+
+model Coupon {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code              String             @unique @db.VarChar(40)
+  description       String?
+  couponType        CouponType         @map("coupon_type")
+  discountType      CouponDiscountType @map("discount_type")
+  discountValue     Decimal            @map("discount_value") @db.Decimal(12, 2)
+  minimumOrderValue Decimal            @default(0) @map("minimum_order_value") @db.Decimal(12, 2)
+  usageLimit        Int?               @map("usage_limit")
+  usagePerUser      Int?               @map("usage_per_user")
+  usageCount        Int                @default(0) @map("usage_count")
+  newUserOnly       Boolean            @default(false) @map("new_user_only")
+  festivalCoupon    Boolean            @default(false) @map("festival_coupon")
+  buyOneGetOne      Boolean            @default(false) @map("buy_one_get_one")
+  buyTwoGetOne      Boolean            @default(false) @map("buy_two_get_one")
+  isActive          Boolean            @default(true) @map("is_active")
+  startDate         DateTime           @map("start_date") @db.Timestamptz(6)
+  endDate           DateTime           @map("end_date") @db.Timestamptz(6)
+  expiresAt         DateTime           @map("expires_at") @db.Timestamptz(6)
+  createdById       String?            @map("created_by") @db.Uuid
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy         User?              @relation("CouponCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  discounts         ProductDiscount[]
+  @@index([isActive, startDate, endDate])
+  @@index([couponType])
+  @@map("coupons")
+}
+
+model ProductDiscount {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productVariantId String  @map("product_variant_id") @db.Uuid
+  couponId        String   @map("coupon_id") @db.Uuid
+  expiresAt       DateTime? @map("expires_at") @db.Timestamptz(6)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  variant         Variant  @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  coupon          Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  @@unique([productVariantId, couponId])
+  @@index([productVariantId])
+  @@index([couponId])
+  @@map("product_discounts")
 }
 
 model UserAddress {
@@ -134,6 +199,7 @@ model Variant {
   createdBy User?     @relation("VariantCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   product   Product? @relation("ProductVariants", fields: [productId], references: [id], onDelete: Cascade)
   primaryProducts Product[] @relation("ProductPrimaryVariant")
+  discounts ProductDiscount[]
 
   @@unique([productId, color, frameSize, mountType, glassType, mrp, price])
   @@index([productId])

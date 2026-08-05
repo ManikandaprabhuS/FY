@@ -19,6 +19,7 @@ This is the admin dashboard for the FrameYaad backend. It is a React + TypeScrip
 - Success and error toasts display in the top-right corner.
 - Heavy admin pages were cleaned up to avoid duplicate fetches and reduce navigation lag.
 - Wishlist analytics section added for Admin and Employee access.
+- Coupon management is available to Admins under Marketing > Coupons. It includes a searchable, filterable paginated list, four-step create/edit wizard, details view, status activation/deactivation, and deletion.
 
 ## Completed Modules and Features
 
@@ -30,6 +31,8 @@ This is the admin dashboard for the FrameYaad backend. It is a React + TypeScrip
 - Orders
 - Wishlist analytics
 - Notifications
+- Coupons (Admin only)
+- Product Discounts (Admin only, variant-based)
 
 ## Key Pages
 
@@ -40,7 +43,22 @@ This is the admin dashboard for the FrameYaad backend. It is a React + TypeScrip
 - Employees
 - Notifications
 - Wishlists
+- Marketing > Coupons
 - Profile
+
+## Coupon Frontend
+
+- Routes: `/admin/marketing/coupons`, `/admin/marketing/coupons/new`, `/admin/marketing/coupons/:id`, and `/admin/marketing/coupons/:id/edit`.
+- Reusable API service, Zustand store, wizard form, status badge, loading skeleton, responsive table, and details cards were added under `src/services`, `src/store`, `src/hooks`, and `src/pages/marketing/coupon`.
+- All create, read, update, status, and delete actions use the existing backend coupon API. Client-side required-field checks, loading states, empty/error handling, and success/error toasts are included.
+- Product Discount, checkout, and coupon application logic are intentionally out of scope.
+
+## Product Discount Frontend
+
+- Added Admin-only Product Discounts under Marketing, directly below Coupons.
+- Routes: `/admin/marketing/product-discounts`, `/admin/marketing/product-discounts/new`, `/admin/marketing/product-discounts/:id`, and `/admin/marketing/product-discounts/:id/edit`.
+- Added API service, Zustand store, hook, responsive assignment table, loading skeleton, search, pagination, assign wizard, review step, detail view, edit expiry, and assignment deletion.
+- Assignments are always made to a Product Variant and use the existing `/product-discounts` backend APIs. Product, Coupon, and Product CRUD remain unchanged.
 
 ## Folder Structure
 

@@ -28,6 +28,8 @@ import {
   SettingsPage,
   WishlistAnalyticsPage,
 } from '../features/admin';
+import { CouponsPage, CouponWizard, CouponDetails } from '../pages/marketing/coupon/CouponPages';
+import { ProductDiscountsPage, ProductDiscountWizard, ProductDiscountDetails } from '../pages/marketing/product-discount/ProductDiscountPages';
 
 export const router = createBrowserRouter([
   {
@@ -98,6 +100,14 @@ export const router = createBrowserRouter([
                 path: 'employees',
                 element: <EmployeesPage />,
               },
+              { path: 'marketing/coupons', element: <CouponsPage /> },
+              { path: 'marketing/coupons/new', element: <CouponWizard /> },
+              { path: 'marketing/coupons/:id', element: <CouponDetails /> },
+              { path: 'marketing/coupons/:id/edit', element: <CouponWizard /> },
+              { path: 'marketing/product-discounts', element: <ProductDiscountsPage /> },
+              { path: 'marketing/product-discounts/new', element: <ProductDiscountWizard /> },
+              { path: 'marketing/product-discounts/:id', element: <ProductDiscountDetails /> },
+              { path: 'marketing/product-discounts/:id/edit', element: <ProductDiscountWizard /> },
             ],
           },
           {

@@ -17,6 +17,7 @@ FrameYaad's REST API is built with Express, TypeScript, Prisma, Supabase Postgre
 - [x] Orders
 - [ ] Coupons (Future phase)
 - [x] Notifications
+- [x] Coupon Management (backend CRUD)
 - [ ] Customer Incidents (Future phase)
 - [ ] Payments (Deferred)
 
@@ -131,6 +132,24 @@ All application tables have RLS enabled. There are no browser policies because E
 ## API Reference
 
 ## Recent Backend Updates
+
+### Coupon Management (backend complete)
+
+- Added standalone `Coupon` model with coupon and discount enums, indexes, date/usage/percentage constraints, and admin creator relation.
+- Added admin-only routes: `GET /coupons`, `GET /coupons/:id`, `POST /coupons`, `PUT /coupons/:id`, `PATCH /coupons/:id/status`, and `DELETE /coupons/:id`.
+- Added pagination, search, active-status filtering, and sorting.
+- Added validation for dates, discount limits, usage limits, and unique coupon codes.
+- Added structured logs for coupon creation, updates, deletion, activation, and deactivation.
+- Coupon application, checkout integration, Product Discount, and frontend UI are intentionally deferred for review.
+
+### Product Discount (variant-based backend complete)
+
+- Product discounts are assigned to `Variant` records (the project equivalent of ProductVariant), never to an entire Product.
+- Added `ProductDiscount` with `productVariantId`, `couponId`, optional `expiresAt`, timestamps, foreign keys, indexes, and a unique variant/coupon combination.
+- Added admin-only CRUD routes: `GET/POST /product-discounts`, `GET/PUT/DELETE /product-discounts/:id`.
+- Assignment responses include variant, parent product, and coupon information.
+- Validates variant/coupon existence, expiry, and duplicate assignments.
+- Checkout application, frontend UI, and discount calculation are intentionally deferred.
 
 - Product listing supports server-side pagination with `page`, `limit`, `search`, and `isActive` filters.
 - Order listing supports server-side pagination and status/customer search filters.

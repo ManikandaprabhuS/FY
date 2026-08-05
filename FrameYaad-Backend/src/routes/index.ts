@@ -11,6 +11,8 @@ import { ordersRouter } from "../modules/orders/orders.routes";
 import { wishlistRouter } from "../modules/wishlist/wishlist.routes";
 import { notificationsRouter } from "../modules/notifications/notifications.routes";
 import { logMethodCall } from "../middleware/method-call-logger.middleware";
+import { couponRouter } from "../modules/coupon/coupon.routes";
+import { productDiscountRouter } from "../modules/product-discount/product-discount.routes";
 
 export const apiRouter = Router();
 
@@ -25,3 +27,5 @@ apiRouter.use("/cart", cartRouter);
 apiRouter.use("/orders", ordersRouter);
 apiRouter.use("/wishlist", wishlistRouter);
 apiRouter.use("/notifications", notificationsRouter);
+apiRouter.use("/coupons", couponRouter);
+apiRouter.use("/product-discounts", productDiscountRouter);
