@@ -53,6 +53,15 @@ This is the admin dashboard for the FrameYaad backend. It is a React + TypeScrip
 - All create, read, update, status, and delete actions use the existing backend coupon API. Client-side required-field checks, loading states, empty/error handling, and success/error toasts are included.
 - Product Discount, checkout, and coupon application logic are intentionally out of scope.
 
+### Coupon Type Dynamic Form Behaviour
+
+- Coupon Information and Coupon Rules now respond to the selected coupon type without a page reload.
+- Percentage and Flat enable discount fields; Limited Count additionally enables Usage Limit; Order Price Above enables Minimum Order Value.
+- Once Per User and New User automatically set Usage Per User to `1`; New User and Festival automatically select their matching flags.
+- Buy One Get One and Buy Two Get One set their matching flags and disable discount/minimum-order inputs.
+- Switching types clears values that are no longer applicable and disables them with muted styling.
+- Validation runs only for enabled fields, with contextual helper text shown below Coupon Type.
+
 ## Product Discount Frontend
 
 - Added Admin-only Product Discounts under Marketing, directly below Coupons.
