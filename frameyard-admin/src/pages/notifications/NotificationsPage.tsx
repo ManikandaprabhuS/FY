@@ -3,7 +3,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { Bell, CheckCircle2, Info, Check } from 'lucide-react';
 
 export const NotificationsPage: React.FC = () => {
-  const { notifications, loading, markAllAsRead, toggleNotificationRead, removeNotification } = useNotifications(true);
+  const { notifications, loading, markAllAsRead, toggleNotificationRead, removeNotification } = useNotifications(false);
   const [filter, setFilter] = useState<'all' | 'read' | 'unread'>('all');
 
   const { totalCount, unreadCount, readCount } = useMemo(() => ({

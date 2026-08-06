@@ -19,6 +19,8 @@ interface ProductState {
   clearCurrentProduct: () => void;
 }
 
+let productsRequestId = 0;
+
 export const useProductStore = create<ProductState>((set) => ({
   products: [],
   currentProduct: null,
@@ -27,11 +29,14 @@ export const useProductStore = create<ProductState>((set) => ({
   error: null,
 
   fetchProducts: async (params = {}) => {
+    const requestId = ++productsRequestId;
     set({ loading: true, error: null });
     try {
       const data = await productService.getProducts(params);
+      if (requestId !== productsRequestId) return;
       set({ products: data.products, pagination: data.pagination, loading: false });
     } catch (err: any) {
+      if (requestId !== productsRequestId) return;
       set({ error: err.response?.data?.message || 'Failed to fetch products', loading: false });
     }
   },

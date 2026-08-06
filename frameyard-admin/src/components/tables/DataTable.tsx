@@ -127,5 +127,5 @@ export function DataTable<T>({
   );
 }
 
-export default DataTable;
+export default React.memo(DataTable) as typeof DataTable;
 

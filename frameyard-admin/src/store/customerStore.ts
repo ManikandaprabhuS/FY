@@ -17,6 +17,8 @@ interface CustomerState {
   ) => Promise<void>;
 }
 
+let customersRequestId = 0;
+
 export const useCustomerStore = create<CustomerState>((set) => ({
   customers: [],
   page: 1,
@@ -30,6 +32,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
     limit = 10,
     search
   ) => {
+    const requestId = ++customersRequestId;
     set({
       loading: true,
       error: null,
@@ -43,6 +46,8 @@ export const useCustomerStore = create<CustomerState>((set) => ({
           search
         );
 
+      if (requestId !== customersRequestId) return;
+
       set({
         customers: data.customers,
         page: data.page,
@@ -52,6 +57,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
       });
 
     } catch (err: any) {
+      if (requestId !== customersRequestId) return;
       set({
         error:
           err.response?.data?.message ||

@@ -3,6 +3,7 @@ import { Order, OrderStatus } from '../types';
 import { orderService } from '../services/order.service';
 
 const ORDER_CACHE_KEY = 'fy_admin_order_cache';
+let ordersRequestId = 0;
 
 const readOrderCache = () => {
   try {
@@ -85,6 +86,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   },
 
   fetchOrders: async (params = {}, options = {}) => {
+    const requestId = ++ordersRequestId;
     const query = {
       page: params.page ?? 1,
       limit: params.limit ?? 10,
@@ -100,6 +102,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     });
     try {
       const data = await orderService.getOrders(query);
+      if (requestId !== ordersRequestId) return;
       set({
         orders: data.orders,
         pagination: data.pagination,
@@ -115,6 +118,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         lastQuery: query,
       });
     } catch (err: any) {
+      if (requestId !== ordersRequestId) return;
       set({
         error: err.response?.data?.message || 'Failed to fetch orders',
         loading: false,

@@ -47,7 +47,7 @@ export const OverviewPage: React.FC = () => {
     if (customers.length === 0) {
       fetchCustomers();
     }
-  }, [customers.length, fetchCustomers, fetchOrders, fetchProducts, orders.length, products.length]);
+  }, [fetchCustomers, fetchOrders, fetchProducts]);
 
   const reportDateRange = useMemo(() => {
     const now = new Date();

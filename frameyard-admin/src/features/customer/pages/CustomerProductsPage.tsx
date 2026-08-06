@@ -4,7 +4,7 @@ import { Search } from 'lucide-react';
 import useProducts from '../../../hooks/useProducts';
 
 const CustomerProductsPage: React.FC = () => {
-  const { products, loading, fetchProducts } = useProducts(true);
+  const { products, loading, fetchProducts } = useProducts(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {

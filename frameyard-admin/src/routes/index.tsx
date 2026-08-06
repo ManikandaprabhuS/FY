@@ -1,40 +1,42 @@
+import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../layouts/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
 import AdminOnlyRoute from '../layouts/AdminOnlyRoute';
 import CustomerLayout from '../layouts/CustomerLayout';
-import {
-  CartPage,
-  CheckoutPage,
-  BookAppointmentPage,
-  ContactUsPage,
-  CustomerHomePage,
-  CustomerOrdersPage,
-  CustomerProductDetailsPage,
-  CustomerProductsPage,
-  CustomerProfilePage,
-} from '../features/customer';
-import {
-  CustomerDetailsPage,
-  CustomersPage,
-  EmployeesPage,
-  LoginPage,
-  NotificationsPage,
-  OrdersPage,
-  OverviewPage,
-  ProductDetailsPage,
-  ProductsPage,
-  ProfilePage,
-  SettingsPage,
-  WishlistAnalyticsPage,
-} from '../features/admin';
-import { CouponsPage, CouponDetails } from '../pages/marketing/coupon/CouponPages';
-import { CouponDynamicWizard } from '../pages/marketing/coupon/CouponDynamicWizard';
-import { ProductDiscountsPage, ProductDiscountWizard, ProductDiscountDetails } from '../pages/marketing/product-discount/ProductDiscountPages';
+const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
+const OverviewPage = lazy(() => import('../pages/overview/OverviewPage'));
+const ProductsPage = lazy(() => import('../pages/products/ProductsPage'));
+const ProductDetailsPage = lazy(() => import('../pages/products/ProductDetailsPage'));
+const OrdersPage = lazy(() => import('../pages/orders/OrdersPage'));
+const CustomersPage = lazy(() => import('../pages/customers/CustomersPage'));
+const CustomerDetailsPage = lazy(() => import('../pages/customers/CustomerDetailsPage'));
+const NotificationsPage = lazy(() => import('../pages/notifications/NotificationsPage'));
+const ProfilePage = lazy(() => import('../pages/profile/ProfilePage'));
+const SettingsPage = lazy(() => import('../pages/settings/SettingsPage'));
+const EmployeesPage = lazy(() => import('../pages/employees/EmployeesPage'));
+const WishlistAnalyticsPage = lazy(() => import('../pages/wishlist/WishlistAnalyticsPage'));
+const CouponsPage = lazy(() => import('../pages/marketing/coupon/CouponReferencePages').then(module => ({ default: module.CouponReferenceList })));
+const CouponDetails = lazy(() => import('../pages/marketing/coupon/CouponReferencePages').then(module => ({ default: module.CouponReferenceDetails })));
+const CouponDynamicWizard = lazy(() => import('../pages/marketing/coupon/CouponDynamicWizard').then(module => ({ default: module.CouponDynamicWizard })));
+const ProductDiscountsPage = lazy(() => import('../pages/marketing/product-discount/ProductDiscountPages').then(module => ({ default: module.ProductDiscountsPage })));
+const ProductDiscountWizard = lazy(() => import('../pages/marketing/product-discount/ProductDiscountPages').then(module => ({ default: module.ProductDiscountWizard })));
+const ProductDiscountDetails = lazy(() => import('../pages/marketing/product-discount/ProductDiscountPages').then(module => ({ default: module.ProductDiscountDetails })));
+const CustomerHomePage = lazy(() => import('../features/customer/pages/CustomerHomePage'));
+const CustomerProductsPage = lazy(() => import('../features/customer/pages/CustomerProductsPage'));
+const CustomerProductDetailsPage = lazy(() => import('../features/customer/pages/CustomerProductDetailsPage'));
+const CartPage = lazy(() => import('../features/customer/pages/CartPage'));
+const CheckoutPage = lazy(() => import('../features/customer/pages/CheckoutPage'));
+const CustomerProfilePage = lazy(() => import('../features/customer/pages/CustomerProfilePage'));
+const CustomerOrdersPage = lazy(() => import('../features/customer/pages/CustomerOrdersPage'));
+const BookAppointmentPage = lazy(() => import('../features/customer/pages/BookAppointmentPage'));
+const ContactUsPage = lazy(() => import('../features/customer/pages/ContactUsPage'));
+const LazyFallback = <div className="min-h-[240px] animate-pulse p-8 text-sm text-secondary">Loading…</div>;
+const lazyElement = (element: React.ReactNode) => <Suspense fallback={LazyFallback}>{element}</Suspense>;
 
 export const router = createBrowserRouter([
   {
-    element: <CustomerLayout />,
+    element: <Suspense fallback={LazyFallback}><CustomerLayout /></Suspense>,
     children: [
       { path: '/', element: <CustomerHomePage /> },
       { path: '/products', element: <CustomerProductsPage /> },
@@ -47,12 +49,12 @@ export const router = createBrowserRouter([
       { path: '/contact-us', element: <ContactUsPage /> },
     ],
   },
-  {path: '/fyadminlogin',element: <LoginPage />,},
+  {path: '/fyadminlogin',element: lazyElement(<LoginPage />),},
   {path: '/login',element: <Navigate to="/fyadminlogin" replace />,},
   {path: '/admin',element: <ProtectedRoute />,
     children: [
       {
-        element: <AdminLayout />,
+        element: <Suspense fallback={LazyFallback}><AdminLayout /></Suspense>,
         children: [
           {
             path: '',

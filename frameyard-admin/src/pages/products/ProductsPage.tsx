@@ -15,6 +15,7 @@ export const ProductsPage: React.FC = () => {
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'draft'>('all');
 
   // Delete Dialog State
@@ -26,8 +27,13 @@ export const ProductsPage: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
-    fetchProducts({ page: currentPage, limit: itemsPerPage, search: searchTerm || undefined, isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' });
-  }, [fetchProducts, currentPage, itemsPerPage, searchTerm, statusFilter]);
+    const timer = window.setTimeout(() => setDebouncedSearchTerm(searchTerm.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchProducts({ page: currentPage, limit: itemsPerPage, search: debouncedSearchTerm || undefined, isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' });
+  }, [fetchProducts, currentPage, itemsPerPage, debouncedSearchTerm, statusFilter]);
 
   // Handle stock computation
   const getStockStatus = (product: Product) => {

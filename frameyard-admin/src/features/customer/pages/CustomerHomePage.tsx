@@ -7,7 +7,7 @@ import { Product } from '../../../types';
 import { FeaturedProductsCarousel, HowItWorksSection } from '../components';
 
 const CustomerHomePage: React.FC = () => {
-  const { products, fetchProducts } = useProducts(true);
+  const { products, fetchProducts } = useProducts(false);
 
   useEffect(() => {
     fetchProducts();

@@ -67,6 +67,7 @@ export const ProductDetailsPage: React.FC = () => {
 
   // Upload State
   const [imageError, setImageError] = useState<string | null>(null);
+  const [wizardError, setWizardError] = useState<string | null>(null);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -104,6 +105,7 @@ export const ProductDetailsPage: React.FC = () => {
     setVariants([]);
     setImages([]);
     setImageError(null);
+    setWizardError(null);
   }, [id, isNew, fetchProductById, clearCurrentProduct]);
 
   useEffect(() => {
@@ -220,8 +222,8 @@ export const ProductDetailsPage: React.FC = () => {
     });
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!name || !material || isUploadingImages || isSaving) return;
 
     setIsSaving(true);
@@ -410,7 +412,21 @@ export const ProductDetailsPage: React.FC = () => {
   // same save/upload handlers as the existing product form.
   if (isNew) {
     const goNext = () => {
-      if (wizardStep === 1 && (!name || !description || !brand)) return;
+      let message: string | null = null;
+      if (wizardStep === 1 && (!name.trim() || !description.trim() || !brand.trim())) {
+        message = 'Please complete Product Name, Description, and Brand Name before continuing.';
+      } else if (wizardStep === 2 && (!material.trim() || colors.length === 0)) {
+        message = 'Please select a material and at least one available colour before continuing.';
+      } else if (wizardStep === 3 && variants.length === 0) {
+        message = 'Please add at least one product variant before continuing.';
+      } else if (wizardStep === 4 && images.length === 0) {
+        message = 'Please upload at least one product image before continuing.';
+      }
+      if (message) {
+        setWizardError(message);
+        return;
+      }
+      setWizardError(null);
       setWizardStep((step) => Math.min(step + 1, wizardSteps.length));
     };
 
@@ -464,7 +480,8 @@ export const ProductDetailsPage: React.FC = () => {
           {wizardStep === 5 && <div className="mx-auto max-w-3xl"><h3 className="text-base font-bold text-on-surface">Review Product</h3><p className="mt-1 text-xs text-on-surface-variant">Review the product before creating it.</p><div className="mt-6 divide-y divide-outline-variant overflow-hidden rounded-lg border border-outline-variant text-sm"><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Basic Information</span><span><strong>{name}</strong><br /><span className="text-on-surface-variant">{description}</span><br /><span className="text-on-surface-variant">Brand: {brand} · {status === 'active' ? 'Active' : 'Draft'}</span></span></div><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Materials</span><span>{material} · {colors.length} colour{colors.length === 1 ? '' : 's'} selected</span></div><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Variants</span><span>{variants.length} variant{variants.length === 1 ? '' : 's'} added</span></div><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Images</span><span>{images.length} image{images.length === 1 ? '' : 's'} added</span></div></div></div>}
         </section>
 
-        <footer className="flex items-center justify-between"><button type="button" onClick={() => setWizardStep((step) => Math.max(1, step - 1))} disabled={wizardStep === 1} className="rounded-lg border border-outline-variant px-5 py-2 text-xs font-semibold disabled:invisible hover:bg-surface">Back</button>{wizardStep < wizardSteps.length ? <button type="button" onClick={goNext} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary">Next</button> : <button type="button" onClick={handleSave} disabled={isSaving || isUploadingImages} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary disabled:opacity-60">{isSaving ? 'Creating...' : 'Create Product'}</button>}</footer>
+        {wizardError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600" role="alert">{wizardError}</p>}
+        <footer className="flex items-center justify-between"><button type="button" onClick={() => { setWizardError(null); setWizardStep((step) => Math.max(1, step - 1)); }} disabled={wizardStep === 1} className="rounded-lg border border-outline-variant px-5 py-2 text-xs font-semibold disabled:invisible hover:bg-surface">Back</button>{wizardStep < wizardSteps.length ? <button type="button" onClick={goNext} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary">Next</button> : <button type="button" onClick={() => { if (images.length === 0) { setWizardError('Please upload at least one product image before creating the product.'); return; } if (variants.length === 0) { setWizardError('Please add at least one product variant before creating the product.'); return; } handleSave(); }} disabled={isSaving || isUploadingImages} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary disabled:opacity-60">{isSaving ? 'Creating...' : 'Create Product'}</button>}</footer>
 
         <Modal isOpen={variantModalOpen} onClose={() => setVariantModalOpen(false)} title={editingVariant ? 'Edit Variant' : 'Add Variant'} footer={<><button type="button" onClick={() => setVariantModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold">Cancel</button><button type="button" onClick={handleSaveVariant} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary">Save Variant</button></>}><div className="grid grid-cols-2 gap-4"><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Frame Size *<input value={varSize} onChange={(event) => setVarSize(event.target.value)} placeholder={'e.g. 8" x 10"'} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Mount Type<select value={varMountType} onChange={(event) => setVarMountType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Glass Type<select value={varGlassType} onChange={(event) => setVarGlassType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Price *<input type="number" value={varPrice} onChange={(event) => setVarPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Offer Price<input type="number" value={varOfferPrice} onChange={(event) => setVarOfferPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Stock Inventory *<input type="number" value={varStock} onChange={(event) => setVarStock(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label></div></Modal>
       </div>
